@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { type ReactElement, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -21,6 +21,26 @@ type CareerId =
   | "ux"
   | "data_analytics"
   | "networks";
+
+type IconName =
+  | "palette"
+  | "brain"
+  | "puzzle"
+  | "search"
+  | "bot"
+  | "shield"
+  | "wrench"
+  | "rocket"
+  | "chart"
+  | "monitor"
+  | "gamepad"
+  | "phone"
+  | "compass"
+  | "trending"
+  | "network"
+  | "flask"
+  | "graduation"
+  | "zap";
 
 type Scores = Partial<Record<CareerId, number>>;
 
@@ -59,7 +79,7 @@ const proforientationDocs: ProforientationDoc[] = [
       "Коротка презентація для абітурієнтів про кафедру, освітні напрями та можливості навчання.",
     type: "Google Slides",
     viewUrl:
-      "https://docs.google.com/presentation/d/1zxDXEDE8OeNI0oL0uwu9JNHXHMmnnVre/present?slide=id.p1",
+      "https://docs.google.com/presentation/d/1zxDXEDE8OeNI0oL0uwu9JNHXHMmnnVre/edit?usp=sharing&ouid=107177612409838408636&rtpof=true&sd=true",
     downloadUrl:
       "https://drive.google.com/uc?export=download&id=1zxDXEDE8OeNI0oL0uwu9JNHXHMmnnVre",
   },
@@ -97,7 +117,7 @@ const emptyScores: Record<CareerId, number> = {
 const results: Record<
   CareerId,
   {
-    icon: string;
+    icon: IconName;
     title: string;
     subtitle: string;
     description: string;
@@ -107,7 +127,7 @@ const results: Record<
   }
 > = {
   frontend: {
-    icon: "🎨",
+    icon: "palette",
     title: "Створення сайтів та інтерфейсів",
     subtitle: "Frontend / Вебінтерфейси",
     description:
@@ -117,7 +137,7 @@ const results: Record<
     steps: ["HTML", "CSS", "JavaScript", "Figma", "React"],
   },
   backend: {
-    icon: "🧠",
+    icon: "brain",
     title: "Програмування логіки систем",
     subtitle: "Backend / Серверна логіка",
     description:
@@ -127,7 +147,7 @@ const results: Record<
     steps: ["JavaScript", "Python", "Node.js", "SQL", "алгоритми"],
   },
   fullstack: {
-    icon: "🧩",
+    icon: "puzzle",
     title: "Створення повних цифрових продуктів",
     subtitle: "Fullstack / Весь проєкт",
     description:
@@ -137,7 +157,7 @@ const results: Record<
     steps: ["HTML", "CSS", "JavaScript", "React", "Node.js", "SQL"],
   },
   qa: {
-    icon: "🔎",
+    icon: "search",
     title: "Тестування та контроль якості",
     subtitle: "QA / Пошук помилок",
     description:
@@ -147,7 +167,7 @@ const results: Record<
     steps: ["тест-кейси", "баг-репорти", "DevTools", "Postman", "основи тестування"],
   },
   ai: {
-    icon: "🤖",
+    icon: "bot",
     title: "Штучний інтелект та машинне навчання",
     subtitle: "AI / ML",
     description:
@@ -157,7 +177,7 @@ const results: Record<
     steps: ["Python", "Google Colab", "Pandas", "нейронні мережі", "Kaggle"],
   },
   cybersecurity: {
-    icon: "🛡️",
+    icon: "shield",
     title: "Кібербезпека",
     subtitle: "Захист даних і систем",
     description:
@@ -167,7 +187,7 @@ const results: Record<
     steps: ["паролі", "мережі", "Linux", "основи веббезпеки", "Wireshark"],
   },
   embedded: {
-    icon: "🔧",
+    icon: "wrench",
     title: "Компʼютерна інженерія та пристрої",
     subtitle: "Embedded / Робототехніка",
     description:
@@ -177,7 +197,7 @@ const results: Record<
     steps: ["Arduino", "ESP32", "C++", "датчики", "робототехніка"],
   },
   devops: {
-    icon: "🚀",
+    icon: "rocket",
     title: "Запуск і підтримка систем",
     subtitle: "DevOps / Інфраструктура",
     description:
@@ -187,7 +207,7 @@ const results: Record<
     steps: ["Linux", "Docker", "Git", "сервери", "CI/CD"],
   },
   databases: {
-    icon: "📊",
+    icon: "chart",
     title: "Інформаційні системи та бази даних",
     subtitle: "Бази даних / Облік / Дані",
     description:
@@ -197,7 +217,7 @@ const results: Record<
     steps: ["SQL", "PostgreSQL", "Excel", "моделі даних", "Power BI"],
   },
   systems: {
-    icon: "💻",
+    icon: "monitor",
     title: "Компʼютерні системи",
     subtitle: "ПК / ОС / Адміністрування",
     description:
@@ -207,7 +227,7 @@ const results: Record<
     steps: ["Windows", "Linux", "PowerShell", "апаратна частина ПК", "адміністрування"],
   },
   gamedev: {
-    icon: "🎮",
+    icon: "gamepad",
     title: "Розробка ігор та інтерактивних симуляцій",
     subtitle: "GameDev",
     description:
@@ -217,7 +237,7 @@ const results: Record<
     steps: ["Unity", "C#", "Scratch", "ігрова логіка", "2D/3D основи"],
   },
   mobile: {
-    icon: "📱",
+    icon: "phone",
     title: "Мобільна розробка",
     subtitle: "Mobile Apps",
     description:
@@ -227,7 +247,7 @@ const results: Record<
     steps: ["Flutter", "React Native", "JavaScript", "UX", "мобільні інтерфейси"],
   },
   ux: {
-    icon: "🧭",
+    icon: "compass",
     title: "Проєктування зручності цифрових продуктів",
     subtitle: "UX / Product Thinking",
     description:
@@ -237,7 +257,7 @@ const results: Record<
     steps: ["Figma", "прототипи", "інтервʼю користувачів", "карти сценаріїв", "UX-дослідження"],
   },
   data_analytics: {
-    icon: "📈",
+    icon: "trending",
     title: "Аналітика даних",
     subtitle: "Data Analytics",
     description:
@@ -247,7 +267,7 @@ const results: Record<
     steps: ["Excel", "SQL", "Power BI", "Python", "візуалізація даних"],
   },
   networks: {
-    icon: "🌐",
+    icon: "network",
     title: "Компʼютерні мережі",
     subtitle: "Networks / Інфраструктура",
     description:
@@ -451,6 +471,44 @@ function getParticipantSeed(sessionId: string) {
   return seed;
 }
 
+
+function OutlineIcon({ name }: { name: IconName }) {
+  const common = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2.2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  const icons: Record<IconName, ReactElement> = {
+    palette: <><path {...common} d="M12 22a10 10 0 1 1 10-10c0 2.2-1.8 4-4 4h-1.5a1.8 1.8 0 0 0-1.5 2.8A2.1 2.1 0 0 1 13.2 22H12Z"/><circle {...common} cx="7.5" cy="10" r=".8"/><circle {...common} cx="10.5" cy="7.2" r=".8"/><circle {...common} cx="14.3" cy="7.8" r=".8"/><circle {...common} cx="16.8" cy="11" r=".8"/></>,
+    brain: <><path {...common} d="M9 4.5A3.5 3.5 0 0 0 5.5 8v.5A3.5 3.5 0 0 0 4 15a4 4 0 0 0 5 4"/><path {...common} d="M15 4.5A3.5 3.5 0 0 1 18.5 8v.5A3.5 3.5 0 0 1 20 15a4 4 0 0 1-5 4"/><path {...common} d="M9 4.5V19M15 4.5V19M9 9h6M9 14h6"/></>,
+    puzzle: <><path {...common} d="M8 3h5v4a2 2 0 1 0 4 0V3h4v6h-3a2 2 0 1 0 0 4h3v8h-6v-3a2 2 0 1 0-4 0v3H3v-5h4a2 2 0 1 0 0-4H3V8h5V3Z"/></>,
+    search: <><circle {...common} cx="10.5" cy="10.5" r="6.5"/><path {...common} d="m16 16 5 5"/></>,
+    bot: <><rect {...common} x="5" y="7" width="14" height="11" rx="4"/><path {...common} d="M12 7V3M8.5 12h.01M15.5 12h.01M9 16h6"/><path {...common} d="M3 12h2M19 12h2"/></>,
+    shield: <><path {...common} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path {...common} d="m9 12 2 2 4-5"/></>,
+    wrench: <><path {...common} d="M14.7 6.3a4 4 0 0 0-5 5L3 18l3 3 6.7-6.7a4 4 0 0 0 5-5l-2.4 2.4-3-3 2.4-2.4Z"/></>,
+    rocket: <><path {...common} d="M5 15c3-7 7-11 14-12-1 7-5 11-12 14l-2-2Z"/><path {...common} d="M9 16l-1 5-5-5 5-1M15 5l4 4"/><circle {...common} cx="14" cy="10" r="1.5"/></>,
+    chart: <><path {...common} d="M4 19V5M4 19h16"/><path {...common} d="M8 16v-5M12 16V8M16 16v-8"/></>,
+    monitor: <><rect {...common} x="3" y="4" width="18" height="12" rx="2"/><path {...common} d="M8 20h8M12 16v4"/></>,
+    gamepad: <><path {...common} d="M7 10h10a5 5 0 0 1 4.6 7l-.4 1a2.5 2.5 0 0 1-4.1.8L15 16H9l-2.1 2.8a2.5 2.5 0 0 1-4.1-.8l-.4-1A5 5 0 0 1 7 10Z"/><path {...common} d="M8 13v4M6 15h4M16.5 14.5h.01M18.5 16.5h.01"/></>,
+    phone: <><rect {...common} x="7" y="2" width="10" height="20" rx="2"/><path {...common} d="M11 18h2"/></>,
+    compass: <><circle {...common} cx="12" cy="12" r="9"/><path {...common} d="m15 9-2 5-5 2 2-5 5-2Z"/></>,
+    trending: <><path {...common} d="M4 18 10 12l4 4 6-8"/><path {...common} d="M15 8h5v5"/></>,
+    network: <><circle {...common} cx="6" cy="7" r="3"/><circle {...common} cx="18" cy="7" r="3"/><circle {...common} cx="12" cy="18" r="3"/><path {...common} d="M8.5 9.5 11 15M15.5 9.5 13 15M9 7h6"/></>,
+    flask: <><path {...common} d="M9 3h6M10 3v5l-5 9a3 3 0 0 0 2.6 4.5h8.8A3 3 0 0 0 19 17l-5-9V3"/><path {...common} d="M8 15h8"/></>,
+    graduation: <><path {...common} d="m3 9 9-4 9 4-9 4-9-4Z"/><path {...common} d="M7 11v4c3 2 7 2 10 0v-4"/><path {...common} d="M21 9v6"/></>,
+    zap: <><path {...common} d="M13 2 4 14h7l-1 8 10-13h-7l0-7Z"/></>,
+  };
+
+  return (
+    <svg className="outline-icon" viewBox="0 0 24 24" aria-hidden="true">
+      {icons[name]}
+    </svg>
+  );
+}
+
 export default function App() {
   const resultPdfRef = useRef<HTMLDivElement | null>(null);
   const session = getSessionFromUrl();
@@ -513,12 +571,12 @@ export default function App() {
     setExpiresAt(next.expires);
   }
 
-  function startWithoutQr() {
-    const next = createTestUrl(24 * 60 * 60 * 1000);
-    window.location.href = next.url;
-  }
 
   function answerQuestion(scoresToAdd: Scores) {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     setScores((prev) => {
       const next = { ...prev };
 
@@ -529,17 +587,19 @@ export default function App() {
       return next;
     });
 
-    if (currentIndex < testQuestions.length - 1) {
-      setCurrentIndex((value) => value + 1);
-    } else {
-      setScreen("result");
-    }
+    window.setTimeout(() => {
+      if (currentIndex < testQuestions.length - 1) {
+        setCurrentIndex((value) => value + 1);
+      } else {
+        setScreen("result");
+      }
+    }, 80);
   }
 
   function getShareText() {
     return `Мій результат профорієнтаційного тесту:
 
-${result.main.icon} ${result.main.title}
+${result.main.title}
 ${result.main.subtitle}
 
 ${result.main.description}
@@ -555,24 +615,44 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
   async function createPdfBlob() {
     if (!resultPdfRef.current) return null;
 
-    const canvas = await html2canvas(resultPdfRef.current, {
+    const sheet = resultPdfRef.current;
+
+    // На iPhone html2canvas інколи криво рахує розмір елемента, якщо він захований за межами екрана.
+    // Тому перед знімком примусово фіксуємо A4-розмір і беремо canvas точно 794×1123 px.
+    const previousStyle = sheet.getAttribute("style") ?? "";
+    sheet.style.width = "794px";
+    sheet.style.height = "1123px";
+    sheet.style.maxWidth = "794px";
+    sheet.style.minHeight = "1123px";
+
+    const canvas = await html2canvas(sheet, {
       scale: 2,
+      width: 794,
+      height: 1123,
+      windowWidth: 794,
+      windowHeight: 1123,
+      scrollX: 0,
+      scrollY: 0,
       backgroundColor: "#ffffff",
       useCORS: true,
     });
 
-    const imgData = canvas.toDataURL("image/png");
+    sheet.setAttribute("style", previousStyle);
+
+    const imgData = canvas.toDataURL("image/png", 1);
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
       format: "a4",
+      compress: true,
     });
 
+    // Завжди кладемо зображення рівно в A4, без автоматичного перерахунку висоти.
     pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
 
     // html2canvas робить PDF як зображення, тому додаємо клікабельні області поверх посилань вручну.
-    pdf.link(24, 258, 70, 7, { url: "https://kiis.khmnu.edu.ua/" });
-    pdf.link(24, 268, 92, 7, { url: "https://kiis.khmnu.edu.ua/abiturientu/" });
+    pdf.link(24, 261, 74, 7, { url: "https://kiis.khmnu.edu.ua/" });
+    pdf.link(24, 272, 100, 7, { url: "https://kiis.khmnu.edu.ua/abiturientu/" });
 
     return pdf.output("blob");
   }
@@ -605,14 +685,29 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
     const pdfBlob = await createPdfBlob();
     if (!pdfBlob) return;
 
+    const file = new File([pdfBlob], "my-it-profile.pdf", { type: "application/pdf" });
+
+    try {
+      // На iPhone/iPad браузер часто не дає примусово завантажити blob-файл.
+      // Через share sheet користувач може одразу зберегти PDF у Files або надіслати його.
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: "Мій ІТ-профіль PDF", files: [file] });
+        return;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
     const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement("a");
     link.href = url;
     link.download = "my-it-profile.pdf";
+    link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
   if (!session) {
@@ -639,7 +734,7 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
       <main className="admin-page">
         <section className="admin-card">
           <div className="brand-row">
-            <div className="brand-mark">💻</div>
+            <div className="brand-mark"><OutlineIcon name="monitor" /></div>
             <div>
               <div className="badge">Профорієнтаційний модуль</div>
               <h1>Мій ІТ-напрям</h1>
@@ -654,17 +749,17 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
 
               <div className="home-grid">
                 <button className="home-tile" type="button" onClick={() => setAdminTab("test")}>
-                  <span>🧪</span>
+                  <span><OutlineIcon name="flask" /></span>
                   <strong>Запустити тест</strong>
-                  <small>QR-код, кількість питань, складність і тест без QR для перевірки</small>
+                  <small>QR-код, кількість питань і рівень складності</small>
                 </button>
                 <button className="home-tile" type="button" onClick={() => setAdminTab("proforientation")}>
-                  <span>🎓</span>
+                  <span><OutlineIcon name="graduation" /></span>
                   <strong>Матеріали профорієнтації</strong>
                   <small>Презентації та посилання для роботи з абітурієнтами</small>
                 </button>
                 <button className="home-tile" type="button" onClick={() => setAdminTab("quiz")}>
-                  <span>⚡</span>
+                  <span><OutlineIcon name="zap" /></span>
                   <strong>Квіз Quizizz</strong>
                   <small>Інструкція запуску вікторини без логіна і пароля</small>
                 </button>
@@ -693,9 +788,8 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
                 <input type="range" min="10" max="25" value={count} onChange={(event) => setCount(Number(event.target.value))} />
               </label>
 
-              <div className="actions-row">
+              <div className="actions-row actions-row-single">
                 <button className="primary-button" onClick={generateQr}>Згенерувати QR-код</button>
-                <button className="secondary-button" onClick={startWithoutQr}>Пройти тест без QR</button>
               </div>
             </>
           )}
@@ -779,7 +873,7 @@ if (isExpired) {
         <section className="mobile-card">
           <div className="result-card-pdf">
             <div className="result-summary-head">
-              <div className="result-icon">{result.main.icon}</div>
+              <div className="result-icon"><OutlineIcon name={result.main.icon} /></div>
               <div>
                 <p className="result-label">Твій ІТ-напрям</p>
                 <h1>{result.main.title}</h1>
@@ -790,7 +884,7 @@ if (isExpired) {
             <p className="description">{result.main.description}</p>
 
             <div className="fit-box">
-              <strong>🎓 Підходить до спеціальностей:</strong>
+              <strong><span className="inline-icon"><OutlineIcon name="graduation" /></span> Підходить до спеціальностей:</strong>
               <p>{result.main.fit}</p>
             </div>
 
@@ -840,7 +934,7 @@ if (isExpired) {
           <div ref={resultPdfRef} className="pdf-result-sheet">
             <div className="pdf-result-badge">Мій ІТ-профіль</div>
             <div className="pdf-result-top">
-              <div className="pdf-result-icon">{result.main.icon}</div>
+              <div className="pdf-result-icon"><OutlineIcon name={result.main.icon} /></div>
               <div>
                 <h1>{result.main.title}</h1>
                 <p>{result.main.subtitle}</p>
@@ -915,7 +1009,17 @@ if (isExpired) {
 
         <div className="answers">
           {currentQuestion.answers.map((item, index) => (
-            <button key={index} className="answer-button" onClick={() => answerQuestion(item.scores)}>
+            <button
+              key={`${currentQuestion.id}-${index}`}
+              className="answer-button"
+              onPointerDown={(event) => event.currentTarget.blur()}
+              onPointerUp={(event) => event.currentTarget.blur()}
+              onTouchEnd={(event) => event.currentTarget.blur()}
+              onClick={(event) => {
+                event.currentTarget.blur();
+                answerQuestion(item.scores);
+              }}
+            >
               {item.text}
             </button>
           ))}

@@ -62,6 +62,21 @@ a {
   font-weight: 950;
   letter-spacing: -0.08em;
   box-shadow: 0 20px 40px rgba(79, 57, 246, 0.28);
+  color: #ffffff;
+}
+
+.outline-icon {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
+.inline-icon {
+  display: inline-flex;
+  width: 1.05em;
+  height: 1.05em;
+  margin-right: 6px;
+  vertical-align: -0.14em;
 }
 
 .badge,
@@ -137,6 +152,7 @@ h2 {
   place-items: center;
   border-radius: 20px;
   background: rgba(79, 57, 246, 0.18);
+  color: #93c5fd;
   font-size: 30px;
 }
 
@@ -217,6 +233,10 @@ select {
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   margin-top: 22px;
+}
+
+.actions-row-single {
+  grid-template-columns: 1fr;
 }
 
 .materials-list {
@@ -411,8 +431,6 @@ select {
 
 .answer-button:active {
   transform: scale(0.98);
-  background: #f8f7ff;
-  border-color: #4f39f6;
 }
 
 .result-card-pdf {
@@ -515,8 +533,9 @@ select {
   left: -9999px;
   top: 0;
   width: 794px;
-  min-height: 1123px;
+  height: 1123px;
   padding: 48px;
+  overflow: hidden;
   background: #ffffff;
   color: #0f172a;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -558,6 +577,7 @@ select {
   display: grid;
   place-items: center;
   background: #eef2ff;
+  color: #4f39f6;
   font-size: 46px;
 }
 
@@ -608,8 +628,7 @@ select {
   .brand-row,
   .actions-row,
   .materials-list,
-  .home-grid,
-  .pdf-grid {
+  .home-grid {
     grid-template-columns: 1fr;
   }
 
@@ -686,10 +705,23 @@ select {
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
 }
 
-.answer-button:hover,
+.answer-button:focus,
+.answer-button:focus-visible {
+  outline: none;
+  background: rgba(15, 23, 42, 0.86);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
 .answer-button:active {
   background: rgba(30, 41, 59, 0.98);
   border-color: rgba(14, 165, 233, 0.56);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .answer-button:hover {
+    background: rgba(30, 41, 59, 0.98);
+    border-color: rgba(14, 165, 233, 0.56);
+  }
 }
 
 .result-card-pdf {
@@ -720,6 +752,8 @@ select {
 .result-icon {
   background: linear-gradient(135deg, rgba(79, 57, 246, 0.95), rgba(14, 165, 233, 0.9));
   box-shadow: 0 22px 44px rgba(79, 57, 246, 0.24);
+  color: #ffffff;
+  font-size: 46px;
 }
 
 .result-label {
@@ -783,6 +817,205 @@ select {
     width: 78px;
     height: 78px;
     border-radius: 24px;
+    font-size: 38px;
+  }
+}
+
+
+.pdf-result-sheet .pdf-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.pdf-result-sheet .outline-icon {
+  width: 1em;
+  height: 1em;
+}
+
+/* v6 stability fixes: centered QR action, non-sticky iOS answers, cleaner icon system, compact PDF */
+.actions-row-single {
+  display: flex;
+  justify-content: center;
+}
+
+.actions-row-single .primary-button {
+  width: min(100%, 520px);
+}
+
+.brand-mark,
+.home-tile span,
+.result-icon,
+.pdf-result-icon {
+  background:
+    radial-gradient(circle at 28% 22%, rgba(125, 211, 252, 0.28), transparent 34%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.9));
+  border: 1px solid rgba(125, 211, 252, 0.26);
+  color: #38bdf8;
+  box-shadow: 0 18px 42px rgba(14, 165, 233, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.brand-mark .outline-icon,
+.home-tile span .outline-icon,
+.result-icon .outline-icon {
+  width: 0.64em;
+  height: 0.64em;
+  filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.28));
+}
+
+.pdf-result-icon {
+  background: #eef6ff;
+  border-color: #c7d2fe;
+  color: #1d4ed8;
+  box-shadow: none;
+}
+
+.pdf-result-icon .outline-icon {
+  width: 0.62em;
+  height: 0.62em;
+}
+
+.answer-button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  transition: transform 0.08s ease;
+}
+
+.answer-button:focus,
+.answer-button:focus-visible,
+.answer-button:hover,
+.answer-button:active {
+  outline: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .answer-button,
+  .answer-button:hover,
+  .answer-button:active,
+  .answer-button:focus,
+  .answer-button:focus-visible {
+    background: rgba(15, 23, 42, 0.86) !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+    color: #f8fafc !important;
+    transform: none !important;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22) !important;
+  }
+}
+
+.result-summary-head {
+  grid-template-columns: 74px 1fr;
+  gap: 14px;
+  padding: 14px;
+}
+
+.result-summary-head h1 {
+  font-size: clamp(28px, 7.6vw, 44px);
+  line-height: 1;
+  margin-top: 5px;
+}
+
+.result-icon {
+  width: 74px;
+  height: 74px;
+  border-radius: 22px;
+  font-size: 44px;
+}
+
+.result-label {
+  font-size: 17px;
+}
+
+.subtitle {
+  margin-top: 8px;
+}
+
+.pdf-result-sheet {
+  width: 794px !important;
+  height: 1123px !important;
+  padding: 38px 46px !important;
+  overflow: hidden !important;
+}
+
+.pdf-result-badge {
+  padding: 8px 12px;
+  font-size: 15px;
+}
+
+.pdf-result-top {
+  gap: 18px;
+  margin: 20px 0 22px;
+}
+
+.pdf-result-top h1 {
+  font-size: 34px;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  margin: 0 0 6px;
+}
+
+.pdf-result-top p,
+.pdf-result-sheet p,
+.pdf-result-sheet li {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.pdf-result-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  font-size: 44px;
+  flex: 0 0 auto;
+}
+
+.pdf-grid {
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.pdf-box {
+  padding: 16px 18px;
+  border-radius: 18px;
+}
+
+.pdf-box h2 {
+  font-size: 19px;
+  margin-bottom: 8px;
+}
+
+.pdf-box ul {
+  margin: 8px 0 0;
+}
+
+.pdf-department {
+  margin-top: 14px;
+  padding: 18px 20px;
+  border-radius: 18px;
+}
+
+.pdf-department strong {
+  font-size: 15px;
+}
+
+.pdf-department p {
+  font-size: 15px;
+  line-height: 1.28;
+  margin: 7px 0;
+}
+
+@media (max-width: 520px) {
+  .mobile-card {
+    padding: 22px;
+  }
+
+  .result-summary-head {
+    grid-template-columns: 64px 1fr;
+    border-radius: 24px;
+  }
+
+  .result-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
     font-size: 38px;
   }
 }
