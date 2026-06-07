@@ -79,9 +79,9 @@ const proforientationDocs: ProforientationDoc[] = [
       "Коротка презентація для абітурієнтів про кафедру, освітні напрями та можливості навчання.",
     type: "Google Slides",
     viewUrl:
-      "https://docs.google.com/presentation/d/1zxDXEDE8OeNI0oL0uwu9JNHXHMmnnVre/edit?usp=sharing&ouid=107177612409838408636&rtpof=true&sd=true",
+      "https://docs.google.com/presentation/d/1zxDXEDE8OeNI0oL0uwu9JNHXHMmnnVre/preview?slide=id.p1",
     downloadUrl:
-      "https://drive.google.com/uc?export=download&id=1zxDXEDE8OeNI0oL0uwu9JNHXHMmnnVre",
+      "https://docs.google.com/presentation/d/1zxDXEDE8OeNI0oL0uwu9JNHXHMmnnVre/export/pptx",
   },
   {
     id: "ai-robot-communication",
