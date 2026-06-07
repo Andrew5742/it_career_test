@@ -1,7 +1,6 @@
 import { type ReactElement, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 type Difficulty = "very_easy" | "easy" | "medium" | "high";
 
@@ -587,13 +586,11 @@ export default function App() {
       return next;
     });
 
-    window.setTimeout(() => {
-      if (currentIndex < testQuestions.length - 1) {
-        setCurrentIndex((value) => value + 1);
-      } else {
-        setScreen("result");
-      }
-    }, 80);
+    if (currentIndex < testQuestions.length - 1) {
+      setCurrentIndex((value) => value + 1);
+    } else {
+      setScreen("result");
+    }
   }
 
   function getShareText() {
@@ -613,33 +610,6 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
   }
 
   async function createPdfBlob() {
-    if (!resultPdfRef.current) return null;
-
-    const sheet = resultPdfRef.current;
-
-    // На iPhone html2canvas інколи криво рахує розмір елемента, якщо він захований за межами екрана.
-    // Тому перед знімком примусово фіксуємо A4-розмір і беремо canvas точно 794×1123 px.
-    const previousStyle = sheet.getAttribute("style") ?? "";
-    sheet.style.width = "794px";
-    sheet.style.height = "1123px";
-    sheet.style.maxWidth = "794px";
-    sheet.style.minHeight = "1123px";
-
-    const canvas = await html2canvas(sheet, {
-      scale: 2,
-      width: 794,
-      height: 1123,
-      windowWidth: 794,
-      windowHeight: 1123,
-      scrollX: 0,
-      scrollY: 0,
-      backgroundColor: "#ffffff",
-      useCORS: true,
-    });
-
-    sheet.setAttribute("style", previousStyle);
-
-    const imgData = canvas.toDataURL("image/png", 1);
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -647,12 +617,95 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
       compress: true,
     });
 
-    // Завжди кладемо зображення рівно в A4, без автоматичного перерахунку висоти.
-    pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
+    const pageWidth = 210;
+    const marginX = 18;
+    let y = 18;
 
-    // html2canvas робить PDF як зображення, тому додаємо клікабельні області поверх посилань вручну.
-    pdf.link(24, 261, 74, 7, { url: "https://kiis.khmnu.edu.ua/" });
-    pdf.link(24, 272, 100, 7, { url: "https://kiis.khmnu.edu.ua/abiturientu/" });
+    const drawText = (text: string, x: number, maxWidth: number, fontSize = 11, lineHeight = 6.2) => {
+      pdf.setFontSize(fontSize);
+      const lines = pdf.splitTextToSize(text, maxWidth) as string[];
+      pdf.text(lines, x, y);
+      y += lines.length * lineHeight;
+      return lines;
+    };
+
+    const drawBox = (title: string, bodyLines: string[] | string, options?: { dark?: boolean }) => {
+      const body = Array.isArray(bodyLines) ? bodyLines : [bodyLines];
+      const boxX = marginX;
+      const boxW = pageWidth - marginX * 2;
+      const boxY = y;
+      const bodyText = body.map((item) => `• ${item}`).join("\n");
+      const wrapped = pdf.splitTextToSize(bodyText, boxW - 14) as string[];
+      const height = Math.max(28, 17 + wrapped.length * 5.5);
+
+      pdf.setDrawColor(options?.dark ? 15 : 226, options?.dark ? 23 : 232, options?.dark ? 42 : 240);
+      pdf.setFillColor(options?.dark ? 15 : 248, options?.dark ? 23 : 250, options?.dark ? 42 : 252);
+      pdf.roundedRect(boxX, boxY, boxW, height, 5, 5, "FD");
+
+      pdf.setTextColor(options?.dark ? 255 : 15, options?.dark ? 255 : 23, options?.dark ? 255 : 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.text(title, boxX + 7, boxY + 9);
+
+      pdf.setTextColor(options?.dark ? 226 : 71, options?.dark ? 232 : 85, options?.dark ? 240 : 105);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10.5);
+      pdf.text(wrapped, boxX + 7, boxY + 17);
+      y += height + 8;
+    };
+
+    // Header
+    pdf.setFillColor(238, 242, 255);
+    pdf.roundedRect(marginX, y, 34, 10, 5, 5, "F");
+    pdf.setTextColor(79, 57, 246);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text("Мій ІТ-профіль", marginX + 4, y + 6.5);
+    y += 20;
+
+    pdf.setFillColor(239, 246, 255);
+    pdf.setDrawColor(191, 219, 254);
+    pdf.roundedRect(marginX, y, 22, 22, 6, 6, "FD");
+    pdf.setTextColor(37, 99, 235);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(15);
+    pdf.text("IT", marginX + 7, y + 14);
+
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(22);
+    const titleLines = pdf.splitTextToSize(result.main.title, 145) as string[];
+    pdf.text(titleLines, marginX + 30, y + 8);
+
+    pdf.setTextColor(71, 85, 105);
+    pdf.setFontSize(11);
+    pdf.text(result.main.subtitle, marginX + 30, y + 8 + titleLines.length * 8);
+    y += Math.max(36, 14 + titleLines.length * 8);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(71, 85, 105);
+    drawText(result.main.description, marginX, pageWidth - marginX * 2, 11.5, 6.6);
+    y += 4;
+
+    drawBox("Сильні сторони", result.main.strengths.slice(0, 4));
+    drawBox("З чого почати", result.main.steps.slice(0, 5));
+    drawBox("Підходить до спеціальностей", result.main.fit.replace(/ \/ /g, "\n"));
+
+    const depY = y;
+    drawBox(
+      "Кафедра компʼютерної інженерії та інформаційних систем ХНУ",
+      [
+        "F6 — Інформаційні системи і технології",
+        "F6 — Інформаційні системи штучного інтелекту",
+        "F7 — Компʼютерна інженерія та програмування",
+        "https://kiis.khmnu.edu.ua/",
+        "https://kiis.khmnu.edu.ua/abiturientu/",
+      ],
+      { dark: true },
+    );
+
+    pdf.link(marginX + 7, depY + 42, 72, 6, { url: "https://kiis.khmnu.edu.ua/" });
+    pdf.link(marginX + 7, depY + 48, 96, 6, { url: "https://kiis.khmnu.edu.ua/abiturientu/" });
 
     return pdf.output("blob");
   }
@@ -1011,9 +1064,10 @@ if (isExpired) {
           {currentQuestion.answers.map((item, index) => (
             <button
               key={`${currentQuestion.id}-${index}`}
+              type="button"
               className="answer-button"
-              onPointerDown={(event) => event.currentTarget.blur()}
-              onPointerUp={(event) => event.currentTarget.blur()}
+              onMouseDown={(event) => event.preventDefault()}
+              onTouchStart={(event) => event.currentTarget.blur()}
               onTouchEnd={(event) => event.currentTarget.blur()}
               onClick={(event) => {
                 event.currentTarget.blur();
