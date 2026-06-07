@@ -1,6 +1,7 @@
 import { type ReactElement, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 type Difficulty = "very_easy" | "easy" | "medium" | "high";
 
@@ -508,6 +509,36 @@ function OutlineIcon({ name }: { name: IconName }) {
   );
 }
 
+
+const careerBadgeLabels: Record<IconName, string> = {
+  palette: "FE",
+  brain: "BE",
+  puzzle: "FS",
+  search: "QA",
+  bot: "AI",
+  shield: "SEC",
+  wrench: "HW",
+  rocket: "OPS",
+  chart: "DB",
+  monitor: "IT",
+  gamepad: "GAME",
+  phone: "APP",
+  compass: "UX",
+  trending: "DATA",
+  network: "NET",
+  flask: "TEST",
+  graduation: "F6",
+  zap: "QUIZ",
+};
+
+function CareerBadge({ name, className = "" }: { name: IconName; className?: string }) {
+  return (
+    <div className={`career-badge ${className}`} aria-hidden="true">
+      <span>{careerBadgeLabels[name]}</span>
+    </div>
+  );
+}
+
 export default function App() {
   const resultPdfRef = useRef<HTMLDivElement | null>(null);
   const session = getSessionFromUrl();
@@ -610,104 +641,52 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
   }
 
   async function createPdfBlob() {
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-      compress: true,
-    });
+    const node = resultPdfRef.current;
+    if (!node) return null;
 
-    const pageWidth = 210;
-    const marginX = 18;
-    let y = 18;
+    const previousStyle = node.getAttribute("style") ?? "";
 
-    const drawText = (text: string, x: number, maxWidth: number, fontSize = 11, lineHeight = 6.2) => {
-      pdf.setFontSize(fontSize);
-      const lines = pdf.splitTextToSize(text, maxWidth) as string[];
-      pdf.text(lines, x, y);
-      y += lines.length * lineHeight;
-      return lines;
-    };
+    node.style.width = "794px";
+    node.style.height = "1123px";
+    node.style.minHeight = "1123px";
+    node.style.maxHeight = "1123px";
+    node.style.overflow = "hidden";
+    node.style.transform = "none";
 
-    const drawBox = (title: string, bodyLines: string[] | string, options?: { dark?: boolean }) => {
-      const body = Array.isArray(bodyLines) ? bodyLines : [bodyLines];
-      const boxX = marginX;
-      const boxW = pageWidth - marginX * 2;
-      const boxY = y;
-      const bodyText = body.map((item) => `• ${item}`).join("\n");
-      const wrapped = pdf.splitTextToSize(bodyText, boxW - 14) as string[];
-      const height = Math.max(28, 17 + wrapped.length * 5.5);
+    try {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
 
-      pdf.setDrawColor(options?.dark ? 15 : 226, options?.dark ? 23 : 232, options?.dark ? 42 : 240);
-      pdf.setFillColor(options?.dark ? 15 : 248, options?.dark ? 23 : 250, options?.dark ? 42 : 252);
-      pdf.roundedRect(boxX, boxY, boxW, height, 5, 5, "FD");
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        width: 794,
+        height: 1123,
+        windowWidth: 794,
+        windowHeight: 1123,
+        scrollX: 0,
+        scrollY: 0,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        logging: false,
+      });
 
-      pdf.setTextColor(options?.dark ? 255 : 15, options?.dark ? 255 : 23, options?.dark ? 255 : 42);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(12);
-      pdf.text(title, boxX + 7, boxY + 9);
+      const image = canvas.toDataURL("image/png", 1);
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+        compress: true,
+      });
 
-      pdf.setTextColor(options?.dark ? 226 : 71, options?.dark ? 232 : 85, options?.dark ? 240 : 105);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10.5);
-      pdf.text(wrapped, boxX + 7, boxY + 17);
-      y += height + 8;
-    };
+      pdf.addImage(image, "PNG", 0, 0, 210, 297);
+      pdf.link(24, 261, 74, 7, { url: "https://kiis.khmnu.edu.ua/" });
+      pdf.link(24, 272, 100, 7, { url: "https://kiis.khmnu.edu.ua/abiturientu/" });
 
-    // Header
-    pdf.setFillColor(238, 242, 255);
-    pdf.roundedRect(marginX, y, 34, 10, 5, 5, "F");
-    pdf.setTextColor(79, 57, 246);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("Мій ІТ-профіль", marginX + 4, y + 6.5);
-    y += 20;
-
-    pdf.setFillColor(239, 246, 255);
-    pdf.setDrawColor(191, 219, 254);
-    pdf.roundedRect(marginX, y, 22, 22, 6, 6, "FD");
-    pdf.setTextColor(37, 99, 235);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(15);
-    pdf.text("IT", marginX + 7, y + 14);
-
-    pdf.setTextColor(15, 23, 42);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(22);
-    const titleLines = pdf.splitTextToSize(result.main.title, 145) as string[];
-    pdf.text(titleLines, marginX + 30, y + 8);
-
-    pdf.setTextColor(71, 85, 105);
-    pdf.setFontSize(11);
-    pdf.text(result.main.subtitle, marginX + 30, y + 8 + titleLines.length * 8);
-    y += Math.max(36, 14 + titleLines.length * 8);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(71, 85, 105);
-    drawText(result.main.description, marginX, pageWidth - marginX * 2, 11.5, 6.6);
-    y += 4;
-
-    drawBox("Сильні сторони", result.main.strengths.slice(0, 4));
-    drawBox("З чого почати", result.main.steps.slice(0, 5));
-    drawBox("Підходить до спеціальностей", result.main.fit.replace(/ \/ /g, "\n"));
-
-    const depY = y;
-    drawBox(
-      "Кафедра компʼютерної інженерії та інформаційних систем ХНУ",
-      [
-        "F6 — Інформаційні системи і технології",
-        "F6 — Інформаційні системи штучного інтелекту",
-        "F7 — Компʼютерна інженерія та програмування",
-        "https://kiis.khmnu.edu.ua/",
-        "https://kiis.khmnu.edu.ua/abiturientu/",
-      ],
-      { dark: true },
-    );
-
-    pdf.link(marginX + 7, depY + 42, 72, 6, { url: "https://kiis.khmnu.edu.ua/" });
-    pdf.link(marginX + 7, depY + 48, 96, 6, { url: "https://kiis.khmnu.edu.ua/abiturientu/" });
-
-    return pdf.output("blob");
+      return pdf.output("blob");
+    } finally {
+      node.setAttribute("style", previousStyle);
+    }
   }
 
   async function shareResult() {
@@ -787,7 +766,7 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
       <main className="admin-page">
         <section className="admin-card">
           <div className="brand-row">
-            <div className="brand-mark"><OutlineIcon name="monitor" /></div>
+            <div className="brand-mark brand-mark-text"><span>IT</span></div>
             <div>
               <div className="badge">Профорієнтаційний модуль</div>
               <h1>Мій ІТ-напрям</h1>
@@ -926,7 +905,7 @@ if (isExpired) {
         <section className="mobile-card">
           <div className="result-card-pdf">
             <div className="result-summary-head">
-              <div className="result-icon"><OutlineIcon name={result.main.icon} /></div>
+              <CareerBadge name={result.main.icon} className="result-icon" />
               <div>
                 <p className="result-label">Твій ІТ-напрям</p>
                 <h1>{result.main.title}</h1>
@@ -987,7 +966,7 @@ if (isExpired) {
           <div ref={resultPdfRef} className="pdf-result-sheet">
             <div className="pdf-result-badge">Мій ІТ-профіль</div>
             <div className="pdf-result-top">
-              <div className="pdf-result-icon"><OutlineIcon name={result.main.icon} /></div>
+              <CareerBadge name={result.main.icon} className="pdf-result-icon" />
               <div>
                 <h1>{result.main.title}</h1>
                 <p>{result.main.subtitle}</p>
