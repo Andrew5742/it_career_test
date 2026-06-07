@@ -1,0 +1,16 @@
+[
+  {
+    "id": "f6-f7-presentation",
+    "title": "Презентація спеціальностей F6 та F7",
+    "description": "Коротка презентація для абітурієнтів про освітні напрями кафедри.",
+    "type": "pptx",
+    "file": "proforientation/docs/f6-f7-presentation.pptx"
+  },
+  {
+    "id": "it-career-guide",
+    "title": "Памʼятка абітурієнта",
+    "description": "PDF-матеріал із коротким описом ІТ-напрямів та можливостей навчання.",
+    "type": "pdf",
+    "file": "proforientation/docs/it-career-guide.pdf"
+  }
+]
