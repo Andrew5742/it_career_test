@@ -2,13 +2,6 @@ import { type ReactElement, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { AdminLoginPage } from "./admin/AdminLoginPage";
-import { FeedbackFormPage } from "./features/feedback/FeedbackFormPage";
-import { FeedbackTeacherPanel } from "./features/feedback/FeedbackTeacherPanel";
-import { MaterialsPanel } from "./features/materials/MaterialsPanel";
-import { ItQuizPage } from "./features/quiz/ItQuizPage";
-import { ItQuizTeacherPanel } from "./features/quiz/ItQuizTeacherPanel";
-import type { MaterialRecord } from "./lib/contentTypes";
 
 type Difficulty = "very_easy" | "easy" | "medium" | "high";
 
@@ -61,6 +54,15 @@ type Question = {
   }[];
 };
 
+type ProforientationDoc = {
+  id: string;
+  title: string;
+  description: string;
+  type: "Google Slides";
+  viewUrl: string;
+  downloadUrl: string;
+};
+
 const officialSpecialties = [
   "F6 Інформаційні системи і технології",
   "F6 Інформаційні системи штучного інтелекту",
@@ -69,19 +71,17 @@ const officialSpecialties = [
 
 const difficultyOrder: Difficulty[] = ["very_easy", "easy", "medium", "high"];
 
-const proforientationDocs: MaterialRecord[] = [
+const proforientationDocs: ProforientationDoc[] = [
   {
     id: "kiis-f6-f7-presentation",
     title: "Презентація спеціальностей F6 та F7",
     description:
       "Коротка презентація для абітурієнтів про кафедру, освітні напрями та можливості навчання.",
     type: "Google Slides",
-    view_url:
+    viewUrl:
       "https://docs.google.com/presentation/d/1zxDXEDE8OeNI0oL0uwu9JNHXHMmnnVre/preview?slide=id.p1",
-    download_url:
+    downloadUrl:
       "https://docs.google.com/presentation/d/1zxDXEDE8OeNI0oL0uwu9JNHXHMmnnVre/export/pptx",
-    is_active: true,
-    sort_order: 10,
   },
   {
     id: "ai-robot-communication",
@@ -89,12 +89,10 @@ const proforientationDocs: MaterialRecord[] = [
     description:
       "Презентаційний матеріал для профорієнтаційного заняття про взаємодію з ШІ та цифровими технологіями.",
     type: "Google Slides",
-    view_url:
+    viewUrl:
       "https://docs.google.com/presentation/d/1997-KV7favKTenjGor8aXaLvUyzEkPS9/preview",
-    download_url:
+    downloadUrl:
       "https://docs.google.com/presentation/d/1997-KV7favKTenjGor8aXaLvUyzEkPS9/export/pptx",
-    is_active: true,
-    sort_order: 20,
   },
 ];
 
@@ -544,18 +542,13 @@ function CareerBadge({ name, className = "" }: { name: IconName; className?: str
 export default function App() {
   const resultPdfRef = useRef<HTMLDivElement | null>(null);
   const session = getSessionFromUrl();
-  const adminMode = new URLSearchParams(window.location.search).get("admin") === "1";
-  const feedbackMode = new URLSearchParams(window.location.search).get("mode") === "feedback";
-  const itQuizMode = new URLSearchParams(window.location.search).get("mode") === "it-quiz";
   const debugMode = new URLSearchParams(window.location.search).get("debug") === "1";
 
   const [difficulty, setDifficulty] = useState<Difficulty>("very_easy");
   const [count, setCount] = useState(10);
   const [sessionUrl, setSessionUrl] = useState("");
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
-  const [quizSessionUrl, setQuizSessionUrl] = useState("");
-  const [quizExpiresAt, setQuizExpiresAt] = useState<number | null>(null);
-  const [adminTab, setAdminTab] = useState<"home" | "test" | "proforientation" | "feedback" | "quiz">("home");
+  const [adminTab, setAdminTab] = useState<"home" | "test" | "proforientation" | "quiz">("home");
 
   const [screen, setScreen] = useState<"test" | "result">("test");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -606,11 +599,6 @@ export default function App() {
     const next = createTestUrl(15 * 60 * 1000);
     setSessionUrl(next.url);
     setExpiresAt(next.expires);
-  }
-
-  function showQuizQr(url: string, expires: number) {
-    setQuizSessionUrl(url);
-    setQuizExpiresAt(expires);
   }
 
 
@@ -754,38 +742,7 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
-  if (adminMode) {
-    return <AdminLoginPage />;
-  }
-
-  if (feedbackMode) {
-    return <FeedbackFormPage />;
-  }
-
-  if (itQuizMode) {
-    return <ItQuizPage />;
-  }
-
   if (!session) {
-    if (quizSessionUrl) {
-      return (
-        <main className="qr-fullscreen">
-          <button className="ghost-button qr-back" type="button" onClick={() => setQuizSessionUrl("")}>
-            ← Назад
-          </button>
-
-          <section className="qr-stage it-quiz-qr-stage">
-            <div className="qr-live-badge">QR-квіз активний</div>
-            <QRCodeSVG value={quizSessionUrl} size={380} />
-            <h1>Скануйте QR-код для проходження квізу</h1>
-            <p>Посилання активне 15 хвилин. Учні проходять міні-гру зі своїх телефонів.</p>
-            {quizExpiresAt && <strong>Дійсний до: {new Date(quizExpiresAt).toLocaleTimeString()}</strong>}
-            <p className="session-link">{quizSessionUrl}</p>
-          </section>
-        </main>
-      );
-    }
-
     if (sessionUrl) {
       return (
         <main className="qr-fullscreen">
@@ -819,7 +776,7 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
           {adminTab === "home" && (
             <>
               <p className="lead">
-                Обери, що потрібно запустити: тест із QR-кодом, профорієнтаційні матеріали, відгуки або інструкцію для Quizizz.
+                Обери, що потрібно запустити: тест із QR-кодом, профорієнтаційні матеріали або інструкцію для Quizizz.
               </p>
 
               <div className="home-grid">
@@ -833,15 +790,10 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
                   <strong>Матеріали профорієнтації</strong>
                   <small>Презентації та посилання для роботи з абітурієнтами</small>
                 </button>
-                <button className="home-tile" type="button" onClick={() => setAdminTab("feedback")}>
-                  <span><OutlineIcon name="compass" /></span>
-                  <strong>Відгуки про воркшоп</strong>
-                  <small>QR-форма для оцінки заняття та збору вражень</small>
-                </button>
                 <button className="home-tile" type="button" onClick={() => setAdminTab("quiz")}>
                   <span><OutlineIcon name="zap" /></span>
-                  <strong>Квіз “Професії в ІТ”</strong>
-                  <small>QR-гра для школярів: хто чим займається в ІТ</small>
+                  <strong>Квіз Quizizz</strong>
+                  <small>Інструкція запуску вікторини без логіна і пароля</small>
                 </button>
               </div>
             </>
@@ -878,18 +830,44 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
             <>
               <button className="ghost-button" type="button" onClick={() => setAdminTab("home")}>← На головну</button>
               <h2>Профорієнтаційні матеріали</h2>
+              <p className="lead">У цьому білді презентації підключені як Google Slides-посилання. Фізичні PPTX у public є, але поточний інтерфейс відкриває саме Google-презентації.</p>
 
               <div className="specialty-strip">
                 {officialSpecialties.map((item) => <span key={item}>{item}</span>)}
               </div>
 
-              <MaterialsPanel fallbackMaterials={proforientationDocs} />
+              <div className="materials-list">
+                {proforientationDocs.map((doc) => (
+                  <article key={doc.id} className="material-card">
+                    <div className="material-type">{doc.type}</div>
+                    <h3>{doc.title}</h3>
+                    <p>{doc.description}</p>
+                    <a className="primary-button" href={doc.viewUrl} target="_blank" rel="noreferrer">Відкрити презентацію</a>
+                    <a className="secondary-button" href={doc.downloadUrl} target="_blank" rel="noreferrer">Завантажити PPTX</a>
+                  </article>
+                ))}
+              </div>
             </>
           )}
 
-          {adminTab === "feedback" && <FeedbackTeacherPanel onBack={() => setAdminTab("home")} />}
-
-          {adminTab === "quiz" && <ItQuizTeacherPanel onBack={() => setAdminTab("home")} onLaunchQr={showQuizQr} />}
+          {adminTab === "quiz" && (
+            <>
+              <button className="ghost-button" type="button" onClick={() => setAdminTab("home")}>← На головну</button>
+              <h2>Інструкція запуску вікторини Quizizz</h2>
+              <div className="instruction-card">
+                <ol>
+                  <li>Зайти на сайт <a href="https://quizizz.com/" target="_blank" rel="noreferrer">quizizz.com</a>.</li>
+                  <li>Залогінитися у свій акаунт.</li>
+                  <li>Перейти в <strong>My Library</strong>, обрати потрібну вікторину.</li>
+                  <li>Натиснути <strong>Play</strong> і обрати <strong>Live quiz</strong>.</li>
+                  <li>У правому нижньому кутку натиснути <strong>Start</strong>.</li>
+                  <li>Дочекатися учасників і знову натиснути <strong>Start</strong>.</li>
+                  <li>Якщо всі учасники завершили — результати зʼявляться автоматично. Якщо ні — натиснути <strong>End</strong> у правому верхньому куті та підтвердити завершення.</li>
+                  <li>Для повторної демонстрації переможців достатньо оновити сторінку.</li>
+                </ol>
+              </div>
+            </>
+          )}
         </section>
       </main>
     );

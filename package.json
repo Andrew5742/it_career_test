@@ -11,9 +11,11 @@
     "deploy": "gh-pages -d dist",
     "publish": "npm run build && npm run deploy",
     "text:check": "node scripts/check-text.mjs",
-    "safe:build": "npm run text:check && npm run build"
+    "safe:build": "npm run check:mojibake && npm run build",
+    "check:mojibake": "node scripts/check-mojibake.cjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
     "qrcode.react": "^4.2.0",
