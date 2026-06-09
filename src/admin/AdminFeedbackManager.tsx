@@ -268,33 +268,6 @@ export function AdminFeedbackManager() {
     await loadQuestionsAndResponses(selectedFormId);
   }
 
-  function exportCsv() {
-    const headers = ["created_at", "participant_name", "participant_contact", ...questions.map((item) => item.question_text)];
-    const rows = responses.map((response) => {
-      const answersByQuestion = new Map((response.feedback_answers ?? []).map((item) => [item.question_id, item.answer_text ?? ""]));
-      return [
-        response.created_at,
-        response.participant_name ?? "",
-        response.participant_contact ?? "",
-        ...questions.map((question) => answersByQuestion.get(question.id) ?? ""),
-      ];
-    });
-
-    const csv = `sep=;\r\n${[headers, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(";"))
-      .join("\r\n")}`;
-
-    const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `feedback-${selectedFormId || "responses"}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-  }
-
   async function clearResponses() {
     if (!supabase || !selectedFormId || responses.length === 0) return;
 
@@ -499,9 +472,6 @@ export function AdminFeedbackManager() {
       <div className="admin-list">
         <div className="admin-section-head">
           <h3>Responses</h3>
-          <button className="secondary-button" type="button" onClick={exportCsv} disabled={!selectedFormId || responses.length === 0}>
-            Експорт CSV
-          </button>
           <button className="secondary-button" type="button" onClick={exportPdf} disabled={!selectedFormId || responses.length === 0 || isGeneratingPdf}>
             {isGeneratingPdf ? "Генеруємо PDF..." : "Експорт PDF"}
           </button>
