@@ -306,7 +306,7 @@ export function ItQuizHostScreen({
       )}
 
       {!status && session?.status === "playing" && currentQuestion && (
-        <section className="live-host-card">
+        <section className="live-host-card live-play-card">
           <div className="top-row">
             <span>Питання {(session.current_question_index ?? 0) + 1} з {questions.length}</span>
             <strong>{countdown(session.phase_ends_at)} с</strong>

@@ -4,6 +4,22 @@ import type { FeedbackFormRecord, FeedbackQuestionRecord } from "../../lib/conte
 
 type FeedbackAnswerState = Record<string, string>;
 
+type FeedbackAnswerRow = {
+  question_id: string;
+  answer_text: string;
+  answer_value: { rating: number } | { choice: string } | null;
+};
+
+function createClientId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (character) =>
+    (Number(character) ^ (Math.random() * 16) >> (Number(character) / 4)).toString(16),
+  );
+}
+
 function normalizeOptions(options: unknown[] | null) {
   if (!Array.isArray(options)) {
     return [];
@@ -128,7 +144,7 @@ export function FeedbackFormPage() {
           answer_value: answerValue,
         };
       })
-      .filter(Boolean);
+      .filter((item): item is FeedbackAnswerRow => Boolean(item));
 
     const { error } = await supabase.rpc("submit_feedback_response", {
       p_form_id: form.id,
@@ -138,9 +154,38 @@ export function FeedbackFormPage() {
     });
 
     if (error) {
-      setStatus("Не вдалося надіслати відгук. Спробуй ще раз.");
-      setIsSubmitting(false);
-      return;
+      const responseId = createClientId();
+      const { error: responseError } = await supabase.from("feedback_responses").insert({
+        id: responseId,
+        form_id: form.id,
+        participant_name: participantName.trim() || null,
+        participant_contact: participantContact.trim() || null,
+      });
+
+      if (responseError) {
+        console.error(responseError);
+        setStatus("Не вдалося надіслати відгук. Спробуй ще раз.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (answerRows.length > 0) {
+        const { error: answersError } = await supabase.from("feedback_answers").insert(
+          answerRows.map((answer) => ({
+            response_id: responseId,
+            question_id: answer.question_id,
+            answer_text: answer.answer_text,
+            answer_value: answer.answer_value,
+          })),
+        );
+
+        if (answersError) {
+          console.error(answersError);
+          setStatus("Відгук створено, але відповіді не збереглися. Скажи викладачу перевірити Supabase SQL.");
+          setIsSubmitting(false);
+          return;
+        }
+      }
     }
 
     setIsDone(true);
@@ -172,7 +217,7 @@ export function FeedbackFormPage() {
   return (
     <main className="mobile-page feedback-public-page">
       <section className="mobile-card feedback-card-dark">
-        {!supabase || status ? (
+        {!supabase || (!form && status) ? (
           <>
             <h1>Відгуки про воркшоп</h1>
             <p>{status || "Форма відгуків ще не налаштована"}</p>
