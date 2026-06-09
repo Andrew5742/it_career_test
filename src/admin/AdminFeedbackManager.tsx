@@ -58,6 +58,8 @@ export function AdminFeedbackManager() {
   const [questionDraft, setQuestionDraft] = useState(emptyQuestion);
   const [selectedFormId, setSelectedFormId] = useState("");
   const [status, setStatus] = useState("");
+  const [pdfStatus, setPdfStatus] = useState("");
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   async function loadFeedback() {
     if (!supabase) {
@@ -311,7 +313,7 @@ export function AdminFeedbackManager() {
 
   async function exportPdf() {
     const node = pdfReportRef.current;
-    if (!node || !selectedForm) return;
+    if (!node || !selectedForm || isGeneratingPdf) return;
 
     const previousStyle = node.getAttribute("style") ?? "";
     node.style.position = "fixed";
@@ -322,42 +324,84 @@ export function AdminFeedbackManager() {
     node.style.zIndex = "-1";
     node.style.opacity = "1";
     node.style.pointerEvents = "none";
+    setIsGeneratingPdf(true);
+    setPdfStatus("Готуємо PDF...");
 
     try {
       if (document.fonts?.ready) {
         await document.fonts.ready;
       }
 
-      const pages = Array.from(node.querySelectorAll<HTMLElement>(".feedback-pdf-page"));
-      if (pages.length === 0) return;
+      const blocks = Array.from(node.querySelectorAll<HTMLElement>(".feedback-pdf-block"));
+      if (blocks.length === 0) return;
 
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
       const pageWidth = 210;
       const pageHeight = 297;
+      const pdfWidthPx = 1120;
+      const pdfHeightPx = Math.round((pdfWidthPx * pageHeight) / pageWidth);
+      const pagePaddingPx = 46;
+      const blockGapPx = 16;
+      const pageCanvases: HTMLCanvasElement[] = [];
+      let pageCanvas = document.createElement("canvas");
+      let context = pageCanvas.getContext("2d");
+      let cursorY = pagePaddingPx;
 
-      for (let index = 0; index < pages.length; index += 1) {
-        const canvas = await html2canvas(pages[index], {
+      function resetPageCanvas() {
+        pageCanvas = document.createElement("canvas");
+        pageCanvas.width = pdfWidthPx;
+        pageCanvas.height = pdfHeightPx;
+        context = pageCanvas.getContext("2d");
+        if (!context) return;
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, pdfWidthPx, pdfHeightPx);
+        cursorY = pagePaddingPx;
+      }
+
+      function commitPage() {
+        pageCanvases.push(pageCanvas);
+        resetPageCanvas();
+      }
+
+      resetPageCanvas();
+
+      for (let index = 0; index < blocks.length; index += 1) {
+        setPdfStatus(`Генеруємо PDF: ${index + 1} / ${blocks.length}`);
+        const blockCanvas = await html2canvas(blocks[index], {
           scale: 2,
           backgroundColor: "#ffffff",
-          width: 1120,
-          height: 1584,
           windowWidth: 1120,
-          windowHeight: 1584,
           scrollX: 0,
           scrollY: 0,
           useCORS: true,
           logging: false,
         });
-        const image = canvas.toDataURL("image/png", 1);
-        if (index > 0) {
-          pdf.addPage();
+
+        const blockWidth = blockCanvas.width / 2;
+        const blockHeight = blockCanvas.height / 2;
+        const wouldOverflow = cursorY > pagePaddingPx && cursorY + blockHeight > pdfHeightPx - pagePaddingPx;
+        if (wouldOverflow) {
+          commitPage();
         }
-        pdf.addImage(image, "PNG", 0, 0, pageWidth, pageHeight);
+
+        context?.drawImage(blockCanvas, pagePaddingPx, cursorY, blockWidth, blockHeight);
+        cursorY += blockHeight + blockGapPx;
       }
 
-      pdf.save(`feedback-report-${selectedFormId || "responses"}.pdf`);
+      pageCanvases.push(pageCanvas);
+
+      pageCanvases.forEach((canvas, index) => {
+        if (index > 0) pdf.addPage();
+        pdf.addImage(canvas.toDataURL("image/png", 1), "PNG", 0, 0, pageWidth, pageHeight);
+      });
+
+      if (pageCanvases.length > 0) {
+        pdf.save(`feedback-report-${selectedFormId || "responses"}.pdf`);
+      }
     } finally {
       node.setAttribute("style", previousStyle);
+      setIsGeneratingPdf(false);
+      setPdfStatus("");
     }
   }
 
@@ -458,13 +502,19 @@ export function AdminFeedbackManager() {
           <button className="secondary-button" type="button" onClick={exportCsv} disabled={!selectedFormId || responses.length === 0}>
             Експорт CSV
           </button>
-          <button className="secondary-button" type="button" onClick={exportPdf} disabled={!selectedFormId || responses.length === 0}>
-            Експорт PDF
+          <button className="secondary-button" type="button" onClick={exportPdf} disabled={!selectedFormId || responses.length === 0 || isGeneratingPdf}>
+            {isGeneratingPdf ? "Генеруємо PDF..." : "Експорт PDF"}
           </button>
           <button className="secondary-button danger-button" type="button" onClick={clearResponses} disabled={!selectedFormId || responses.length === 0}>
             Очистити відповіді
           </button>
         </div>
+        {pdfStatus && (
+          <div className="pdf-export-progress" role="status" aria-live="polite">
+            <span>{pdfStatus}</span>
+            <i />
+          </div>
+        )}
         {responses.map((response) => (
           <article key={response.id} className="admin-list-card compact">
             <strong>{response.participant_name || "Без імені"}</strong>
@@ -478,69 +528,78 @@ export function AdminFeedbackManager() {
       </div>
 
       <div ref={pdfReportRef} className="feedback-pdf-report" aria-hidden="true">
-        <section className="feedback-pdf-page">
-          <header className="feedback-pdf-hero">
-            <span>Звіт за відгуками</span>
-            <h1>{selectedForm?.title ?? "Форма відгуків"}</h1>
-            <p>{selectedForm?.description || "Підсумок відповідей учасників воркшопу."}</p>
-          </header>
+        <header className="feedback-pdf-hero feedback-pdf-block">
+          <span>Звіт за відгуками</span>
+          <h1>{selectedForm?.title ?? "Форма відгуків"}</h1>
+          <p>{selectedForm?.description || "Підсумок відповідей учасників воркшопу."}</p>
+        </header>
 
-          <section className="feedback-pdf-summary">
-            <div>
-              <strong>{responses.length}</strong>
-              <span>відповідей</span>
-            </div>
-            <div>
-              <strong>{questions.length}</strong>
-              <span>питань</span>
-            </div>
-            <div>
-              <strong>{selectedWorkshop?.title ?? "Без воркшопу"}</strong>
-              <span>воркшоп</span>
-            </div>
-          </section>
-
-          <section className="feedback-pdf-section">
-            <h2>Огляд</h2>
-            <p>PDF створено як окремі сторінки, щоб графіки й відповіді не розривалися між аркушами.</p>
-          </section>
+        <section className="feedback-pdf-summary feedback-pdf-block">
+          <div>
+            <strong>{responses.length}</strong>
+            <span>відповідей</span>
+          </div>
+          <div>
+            <strong>{questions.length}</strong>
+            <span>питань</span>
+          </div>
+          <div>
+            <strong>{selectedWorkshop?.title ?? "Без воркшопу"}</strong>
+            <span>воркшоп</span>
+          </div>
         </section>
 
         {reportData.map((item, index) => (
-          <section key={item.question.id} className="feedback-pdf-page">
-            <section className="feedback-pdf-section">
-              <span className="feedback-pdf-kicker">Питання {index + 1}</span>
-              <article className="feedback-pdf-question">
-                <h3>{item.question.question_text}</h3>
-                <p>
-                  Тип: {item.question.question_type} · Відповідей: {item.totalAnswers}
-                  {item.averageRating !== null ? ` · Середня оцінка: ${item.averageRating.toFixed(1)} / 5` : ""}
-                </p>
+          <article key={item.question.id} className="feedback-pdf-question feedback-pdf-block">
+            <span className="feedback-pdf-kicker">Питання {index + 1}</span>
+            <h3>{item.question.question_text}</h3>
+            <p>
+              Тип: {item.question.question_type} · Відповідей: {item.totalAnswers}
+              {item.averageRating !== null ? ` · Середня оцінка: ${item.averageRating.toFixed(1)} / 5` : ""}
+            </p>
 
-                {item.distribution.length > 0 && (
-                  <div className="feedback-pdf-bars">
-                    {item.distribution.map((bar) => (
-                      <div key={bar.label} className="feedback-pdf-bar-row">
-                        <span>{bar.label}</span>
-                        <div>
-                          <i style={{ width: `${Math.max(4, bar.percent)}%` }} />
-                        </div>
-                        <strong>{bar.count}</strong>
-                      </div>
-                    ))}
+            {item.distribution.length > 0 && (
+              <div className="feedback-pdf-bars">
+                {item.distribution.map((bar) => (
+                  <div key={bar.label} className="feedback-pdf-bar-row">
+                    <span>{bar.label}</span>
+                    <div>
+                      <i style={{ width: `${Math.max(4, bar.percent)}%` }} />
+                    </div>
+                    <strong>{bar.count}</strong>
                   </div>
-                )}
+                ))}
+              </div>
+            )}
 
-                {item.textAnswers.length > 0 && (
-                  <div className="feedback-pdf-text-list">
-                    {item.textAnswers.slice(0, 12).map((answer, answerIndex) => (
-                      <p key={`${item.question.id}-${answerIndex}`}>{answer}</p>
-                    ))}
+            {item.textAnswers.length > 0 && (
+              <div className="feedback-pdf-text-list">
+                {item.textAnswers.map((answer, answerIndex) => (
+                  <p key={`${item.question.id}-${answerIndex}`}>{answer}</p>
+                ))}
+              </div>
+            )}
+          </article>
+        ))}
+
+        {responses.map((response) => (
+          <article key={response.id} className="feedback-pdf-response feedback-pdf-block">
+            <h3>{response.participant_name || "Без імені"}</h3>
+            <p>
+              {response.participant_contact || "Без контакту"} · {new Date(response.created_at).toLocaleString()}
+            </p>
+            <div className="feedback-pdf-text-list">
+              {(response.feedback_answers ?? []).map((answer) => {
+                const question = questions.find((item) => item.id === answer.question_id);
+                return (
+                  <div key={`${response.id}-${answer.question_id}`} className="feedback-pdf-answer-line">
+                    <strong>{question?.question_text ?? "Питання"}</strong>
+                    <span>{answer.answer_text}</span>
                   </div>
-                )}
-              </article>
-            </section>
-          </section>
+                );
+              })}
+            </div>
+          </article>
         ))}
       </div>
     </div>
