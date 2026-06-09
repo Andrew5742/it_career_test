@@ -118,6 +118,20 @@ export function ItQuizHostScreen({
   const transitionRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    window.scrollTo(0, 0);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
   const currentQuestion = questions[session?.current_question_index ?? -1];
   const answeredCount = useMemo(() => {
     if (!currentQuestion) return 0;
