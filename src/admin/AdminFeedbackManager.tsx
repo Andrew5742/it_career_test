@@ -293,6 +293,22 @@ export function AdminFeedbackManager() {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
+  async function clearResponses() {
+    if (!supabase || !selectedFormId || responses.length === 0) return;
+
+    const confirmed = window.confirm("Очистити всі відповіді для поточної форми? Цю дію не можна скасувати.");
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("feedback_responses").delete().eq("form_id", selectedFormId);
+    if (error) {
+      setStatus(error.message);
+      return;
+    }
+
+    setStatus("Відповіді очищено.");
+    await loadQuestionsAndResponses(selectedFormId);
+  }
+
   async function exportPdf() {
     const node = pdfReportRef.current;
     if (!node || !selectedForm) return;
@@ -312,33 +328,31 @@ export function AdminFeedbackManager() {
         await document.fonts.ready;
       }
 
-      const canvas = await html2canvas(node, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        width: 1120,
-        windowWidth: 1120,
-        scrollX: 0,
-        scrollY: 0,
-        useCORS: true,
-        logging: false,
-      });
+      const pages = Array.from(node.querySelectorAll<HTMLElement>(".feedback-pdf-page"));
+      if (pages.length === 0) return;
 
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
       const pageWidth = 210;
       const pageHeight = 297;
-      const imageHeight = (canvas.height * pageWidth) / canvas.width;
-      let heightLeft = imageHeight;
-      let position = 0;
-      const image = canvas.toDataURL("image/png", 1);
 
-      pdf.addImage(image, "PNG", 0, position, pageWidth, imageHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imageHeight;
-        pdf.addPage();
-        pdf.addImage(image, "PNG", 0, position, pageWidth, imageHeight);
-        heightLeft -= pageHeight;
+      for (let index = 0; index < pages.length; index += 1) {
+        const canvas = await html2canvas(pages[index], {
+          scale: 2,
+          backgroundColor: "#ffffff",
+          width: 1120,
+          height: 1584,
+          windowWidth: 1120,
+          windowHeight: 1584,
+          scrollX: 0,
+          scrollY: 0,
+          useCORS: true,
+          logging: false,
+        });
+        const image = canvas.toDataURL("image/png", 1);
+        if (index > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(image, "PNG", 0, 0, pageWidth, pageHeight);
       }
 
       pdf.save(`feedback-report-${selectedFormId || "responses"}.pdf`);
@@ -447,6 +461,9 @@ export function AdminFeedbackManager() {
           <button className="secondary-button" type="button" onClick={exportPdf} disabled={!selectedFormId || responses.length === 0}>
             Експорт PDF
           </button>
+          <button className="secondary-button danger-button" type="button" onClick={clearResponses} disabled={!selectedFormId || responses.length === 0}>
+            Очистити відповіді
+          </button>
         </div>
         {responses.map((response) => (
           <article key={response.id} className="admin-list-card compact">
@@ -461,61 +478,70 @@ export function AdminFeedbackManager() {
       </div>
 
       <div ref={pdfReportRef} className="feedback-pdf-report" aria-hidden="true">
-        <header className="feedback-pdf-hero">
-          <span>Звіт за відгуками</span>
-          <h1>{selectedForm?.title ?? "Форма відгуків"}</h1>
-          <p>{selectedForm?.description || "Підсумок відповідей учасників воркшопу."}</p>
-        </header>
+        <section className="feedback-pdf-page">
+          <header className="feedback-pdf-hero">
+            <span>Звіт за відгуками</span>
+            <h1>{selectedForm?.title ?? "Форма відгуків"}</h1>
+            <p>{selectedForm?.description || "Підсумок відповідей учасників воркшопу."}</p>
+          </header>
 
-        <section className="feedback-pdf-summary">
-          <div>
-            <strong>{responses.length}</strong>
-            <span>відповідей</span>
-          </div>
-          <div>
-            <strong>{questions.length}</strong>
-            <span>питань</span>
-          </div>
-          <div>
-            <strong>{selectedWorkshop?.title ?? "Без воркшопу"}</strong>
-            <span>воркшоп</span>
-          </div>
+          <section className="feedback-pdf-summary">
+            <div>
+              <strong>{responses.length}</strong>
+              <span>відповідей</span>
+            </div>
+            <div>
+              <strong>{questions.length}</strong>
+              <span>питань</span>
+            </div>
+            <div>
+              <strong>{selectedWorkshop?.title ?? "Без воркшопу"}</strong>
+              <span>воркшоп</span>
+            </div>
+          </section>
+
+          <section className="feedback-pdf-section">
+            <h2>Огляд</h2>
+            <p>PDF створено як окремі сторінки, щоб графіки й відповіді не розривалися між аркушами.</p>
+          </section>
         </section>
 
-        <section className="feedback-pdf-section">
-          <h2>Графіки відповідей</h2>
-          {reportData.map((item) => (
-            <article key={item.question.id} className="feedback-pdf-question">
-              <h3>{item.question.question_text}</h3>
-              <p>
-                Тип: {item.question.question_type} · Відповідей: {item.totalAnswers}
-                {item.averageRating !== null ? ` · Середня оцінка: ${item.averageRating.toFixed(1)} / 5` : ""}
-              </p>
+        {reportData.map((item, index) => (
+          <section key={item.question.id} className="feedback-pdf-page">
+            <section className="feedback-pdf-section">
+              <span className="feedback-pdf-kicker">Питання {index + 1}</span>
+              <article className="feedback-pdf-question">
+                <h3>{item.question.question_text}</h3>
+                <p>
+                  Тип: {item.question.question_type} · Відповідей: {item.totalAnswers}
+                  {item.averageRating !== null ? ` · Середня оцінка: ${item.averageRating.toFixed(1)} / 5` : ""}
+                </p>
 
-              {item.distribution.length > 0 && (
-                <div className="feedback-pdf-bars">
-                  {item.distribution.map((bar) => (
-                    <div key={bar.label} className="feedback-pdf-bar-row">
-                      <span>{bar.label}</span>
-                      <div>
-                        <i style={{ width: `${Math.max(4, bar.percent)}%` }} />
+                {item.distribution.length > 0 && (
+                  <div className="feedback-pdf-bars">
+                    {item.distribution.map((bar) => (
+                      <div key={bar.label} className="feedback-pdf-bar-row">
+                        <span>{bar.label}</span>
+                        <div>
+                          <i style={{ width: `${Math.max(4, bar.percent)}%` }} />
+                        </div>
+                        <strong>{bar.count}</strong>
                       </div>
-                      <strong>{bar.count}</strong>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
 
-              {item.textAnswers.length > 0 && (
-                <div className="feedback-pdf-text-list">
-                  {item.textAnswers.slice(0, 8).map((answer, index) => (
-                    <p key={`${item.question.id}-${index}`}>{answer}</p>
-                  ))}
-                </div>
-              )}
-            </article>
-          ))}
-        </section>
+                {item.textAnswers.length > 0 && (
+                  <div className="feedback-pdf-text-list">
+                    {item.textAnswers.slice(0, 12).map((answer, answerIndex) => (
+                      <p key={`${item.question.id}-${answerIndex}`}>{answer}</p>
+                    ))}
+                  </div>
+                )}
+              </article>
+            </section>
+          </section>
+        ))}
       </div>
     </div>
   );

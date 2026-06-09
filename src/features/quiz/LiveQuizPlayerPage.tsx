@@ -36,7 +36,7 @@ type LeaderboardEntry = {
   place: number;
 };
 
-const answerWindowMs = 10000;
+const answerWindowMs = 15000;
 
 function normalizeQuestionOrder(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
@@ -234,7 +234,14 @@ export function LiveQuizPlayerPage() {
           <form className="it-quiz-start-actions" onSubmit={joinSession}>
             <label className="field">
               <span>Нікнейм</span>
-              <input value={nicknameDraft} maxLength={28} onChange={(event) => setNicknameDraft(event.target.value)} />
+              <input
+                value={nicknameDraft}
+                maxLength={28}
+                autoComplete="nickname"
+                inputMode="text"
+                enterKeyHint="done"
+                onChange={(event) => setNicknameDraft(event.target.value)}
+              />
             </label>
             {status && <p className="inline-status">{status}</p>}
             <button className="primary-button" type="submit">Увійти в гру</button>

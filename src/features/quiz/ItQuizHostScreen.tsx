@@ -44,7 +44,7 @@ type LeaderboardEntry = {
 
 const audioPath = "/it_career_test/audio/before-the-clock-stops.mp3";
 const questionPreviewMs = 3000;
-const answerWindowMs = 10000;
+const answerWindowMs = 15000;
 
 function normalizeQuestionOrder(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
