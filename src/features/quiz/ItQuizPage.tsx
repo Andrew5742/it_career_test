@@ -3,6 +3,7 @@ import { ProfessionVisual } from "../../components/ProfessionVisual";
 import { fallbackItProfessionsQuiz } from "../../data/fallbackItProfessionsQuiz";
 import { supabase } from "../../lib/supabaseClient";
 import type { Quiz, QuizAnswer, QuizQuestion, VisualType } from "../../lib/contentTypes";
+import { LiveQuizPlayerPage } from "./LiveQuizPlayerPage";
 
 type PlayQuestion = QuizQuestion & {
   answers: QuizAnswer[];
@@ -85,10 +86,15 @@ function pickVisualType(tags: string[]): VisualType {
 export function ItQuizPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const quizSlug = searchParams.get("quiz") || fallbackItProfessionsQuiz.slug;
+  const liveMode = searchParams.get("live") === "1";
   const requestedCount = Math.min(20, Math.max(8, Number(searchParams.get("count") || fallbackItProfessionsQuiz.default_question_count)));
   const expires = Number(searchParams.get("expires") || "0");
   const sessionId = searchParams.get("sessionId") || "local";
   const isExpired = Number.isFinite(expires) && expires > 0 ? Date.now() > expires : true;
+
+  if (liveMode) {
+    return <LiveQuizPlayerPage />;
+  }
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [quiz, setQuiz] = useState<Quiz>(fallbackItProfessionsQuiz);
@@ -238,7 +244,7 @@ export function ItQuizPage() {
     }
     window.setTimeout(() => {
       nextQuestion();
-    }, 1200);
+    }, 3000);
   }
 
   function nextQuestion() {
@@ -347,7 +353,7 @@ export function ItQuizPage() {
           </div>
 
           {showExplanation && (
-            <div className="answer-feedback">
+            <div className="answer-feedback answer-feedback-floating">
               <strong>{feedbackMessage}</strong>
               <p>{currentQuestion.explanation}</p>
               <button className="secondary-button" type="button" onClick={nextQuestion}>

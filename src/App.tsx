@@ -6,6 +6,7 @@ import { AdminLoginPage } from "./admin/AdminLoginPage";
 import { FeedbackFormPage } from "./features/feedback/FeedbackFormPage";
 import { FeedbackTeacherPanel } from "./features/feedback/FeedbackTeacherPanel";
 import { MaterialsPanel } from "./features/materials/MaterialsPanel";
+import { ItQuizHostScreen } from "./features/quiz/ItQuizHostScreen";
 import { ItQuizPage } from "./features/quiz/ItQuizPage";
 import { ItQuizTeacherPanel } from "./features/quiz/ItQuizTeacherPanel";
 import type { MaterialRecord } from "./lib/contentTypes";
@@ -553,8 +554,11 @@ export default function App() {
   const [count, setCount] = useState(10);
   const [sessionUrl, setSessionUrl] = useState("");
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [feedbackSessionUrl, setFeedbackSessionUrl] = useState("");
+  const [feedbackExpiresAt, setFeedbackExpiresAt] = useState<number | null>(null);
   const [quizSessionUrl, setQuizSessionUrl] = useState("");
   const [quizExpiresAt, setQuizExpiresAt] = useState<number | null>(null);
+  const [liveQuizSessionId, setLiveQuizSessionId] = useState("");
   const [adminTab, setAdminTab] = useState<"home" | "test" | "proforientation" | "feedback" | "quiz">("home");
 
   const [screen, setScreen] = useState<"test" | "result">("test");
@@ -611,6 +615,12 @@ export default function App() {
   function showQuizQr(url: string, expires: number) {
     setQuizSessionUrl(url);
     setQuizExpiresAt(expires);
+    setLiveQuizSessionId(new URL(url).searchParams.get("sessionId") ?? "");
+  }
+
+  function showFeedbackQr(url: string, expires: number) {
+    setFeedbackSessionUrl(url);
+    setFeedbackExpiresAt(expires);
   }
 
 
@@ -767,22 +777,36 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
   }
 
   if (!session) {
-    if (quizSessionUrl) {
+    if (feedbackSessionUrl) {
       return (
         <main className="qr-fullscreen">
-          <button className="ghost-button qr-back" type="button" onClick={() => setQuizSessionUrl("")}>
+          <button className="ghost-button qr-back" type="button" onClick={() => setFeedbackSessionUrl("")}>
             ← Назад
           </button>
 
-          <section className="qr-stage it-quiz-qr-stage">
-            <div className="qr-live-badge">QR-квіз активний</div>
-            <QRCodeSVG value={quizSessionUrl} size={380} />
-            <h1>Скануйте QR-код для проходження квізу</h1>
-            <p>Посилання активне 15 хвилин. Учні проходять міні-гру зі своїх телефонів.</p>
-            {quizExpiresAt && <strong>Дійсний до: {new Date(quizExpiresAt).toLocaleTimeString()}</strong>}
-            <p className="session-link">{quizSessionUrl}</p>
+          <section className="qr-stage">
+            <div className="qr-live-badge">QR-відгук активний</div>
+            <QRCodeSVG value={feedbackSessionUrl} size={360} />
+            <h1>Відгуки про воркшоп</h1>
+            <p>Посилання активне 15 хвилин. Учні відкривають форму зі своїх телефонів.</p>
+            {feedbackExpiresAt && <strong>Дійсний до: {new Date(feedbackExpiresAt).toLocaleTimeString()}</strong>}
+            <p className="session-link">{feedbackSessionUrl}</p>
           </section>
         </main>
+      );
+    }
+
+    if (quizSessionUrl) {
+      return (
+        <ItQuizHostScreen
+          sessionId={liveQuizSessionId}
+          qrUrl={quizSessionUrl}
+          expiresAt={quizExpiresAt}
+          onBack={() => {
+            setQuizSessionUrl("");
+            setLiveQuizSessionId("");
+          }}
+        />
       );
     }
 
@@ -887,7 +911,7 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
             </>
           )}
 
-          {adminTab === "feedback" && <FeedbackTeacherPanel onBack={() => setAdminTab("home")} />}
+          {adminTab === "feedback" && <FeedbackTeacherPanel onBack={() => setAdminTab("home")} onLaunchQr={showFeedbackQr} />}
 
           {adminTab === "quiz" && <ItQuizTeacherPanel onBack={() => setAdminTab("home")} onLaunchQr={showQuizQr} />}
         </section>

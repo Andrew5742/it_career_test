@@ -108,22 +108,6 @@ export function FeedbackFormPage() {
     setIsSubmitting(true);
     setStatus("");
 
-    const { data: responseData, error: responseError } = await supabase
-      .from("feedback_responses")
-      .insert({
-        form_id: form.id,
-        participant_name: participantName.trim() || null,
-        participant_contact: participantContact.trim() || null,
-      })
-      .select("id")
-      .single();
-
-    if (responseError || !responseData) {
-      setStatus("Не вдалося надіслати відгук. Спробуй ще раз.");
-      setIsSubmitting(false);
-      return;
-    }
-
     const answerRows = questions
       .map((question) => {
         const value = answers[question.id]?.trim() ?? "";
@@ -139,7 +123,6 @@ export function FeedbackFormPage() {
               : null;
 
         return {
-          response_id: responseData.id,
           question_id: question.id,
           answer_text: value,
           answer_value: answerValue,
@@ -147,13 +130,17 @@ export function FeedbackFormPage() {
       })
       .filter(Boolean);
 
-    if (answerRows.length > 0) {
-      const { error: answersError } = await supabase.from("feedback_answers").insert(answerRows);
-      if (answersError) {
-        setStatus("Відповідь створено, але частину відповідей не вдалося зберегти.");
-        setIsSubmitting(false);
-        return;
-      }
+    const { error } = await supabase.rpc("submit_feedback_response", {
+      p_form_id: form.id,
+      p_participant_name: participantName.trim() || null,
+      p_participant_contact: participantContact.trim() || null,
+      p_answers: answerRows,
+    });
+
+    if (error) {
+      setStatus("Не вдалося надіслати відгук. Спробуй ще раз.");
+      setIsSubmitting(false);
+      return;
     }
 
     setIsDone(true);

@@ -81,6 +81,45 @@ create table if not exists public.quiz_results (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.live_quiz_sessions (
+  id uuid primary key default gen_random_uuid(),
+  quiz_id uuid references public.quizzes(id) on delete set null,
+  quiz_slug text not null,
+  question_count int not null default 10,
+  question_order jsonb not null default '[]'::jsonb,
+  status text not null default 'lobby',
+  phase text not null default 'lobby',
+  current_question_index int not null default -1,
+  phase_ends_at timestamptz,
+  expires_at timestamptz,
+  leaderboard jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint live_quiz_sessions_status_check check (status in ('lobby', 'playing', 'finished')),
+  constraint live_quiz_sessions_phase_check check (phase in ('lobby', 'question', 'answers', 'results'))
+);
+
+create table if not exists public.live_quiz_players (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references public.live_quiz_sessions(id) on delete cascade,
+  nickname text not null,
+  joined_at timestamptz not null default now(),
+  unique (session_id, nickname)
+);
+
+create table if not exists public.live_quiz_answers (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references public.live_quiz_sessions(id) on delete cascade,
+  player_id uuid not null references public.live_quiz_players(id) on delete cascade,
+  question_id text not null,
+  answer_id text,
+  is_correct boolean not null default false,
+  response_ms int not null default 10000,
+  points int not null default 0,
+  answered_at timestamptz not null default now(),
+  unique (session_id, player_id, question_id)
+);
+
 create table if not exists public.workshops (
   id uuid primary key default gen_random_uuid(),
   title text not null,
@@ -134,6 +173,9 @@ alter table public.quiz_questions enable row level security;
 alter table public.quiz_answers enable row level security;
 alter table public.quiz_sessions enable row level security;
 alter table public.quiz_results enable row level security;
+alter table public.live_quiz_sessions enable row level security;
+alter table public.live_quiz_players enable row level security;
+alter table public.live_quiz_answers enable row level security;
 alter table public.workshops enable row level security;
 alter table public.feedback_forms enable row level security;
 alter table public.feedback_questions enable row level security;
@@ -148,6 +190,9 @@ grant select on public.quiz_questions to anon, authenticated;
 grant select on public.quiz_answers to anon, authenticated;
 grant insert on public.quiz_sessions to anon, authenticated;
 grant insert on public.quiz_results to anon, authenticated;
+grant all on public.live_quiz_sessions to anon, authenticated;
+grant all on public.live_quiz_players to anon, authenticated;
+grant all on public.live_quiz_answers to anon, authenticated;
 grant select on public.workshops to anon, authenticated;
 grant select on public.feedback_forms to anon, authenticated;
 grant select on public.feedback_questions to anon, authenticated;
@@ -161,6 +206,9 @@ grant all on public.quiz_questions to authenticated;
 grant all on public.quiz_answers to authenticated;
 grant all on public.quiz_sessions to authenticated;
 grant all on public.quiz_results to authenticated;
+grant all on public.live_quiz_sessions to authenticated;
+grant all on public.live_quiz_players to authenticated;
+grant all on public.live_quiz_answers to authenticated;
 grant all on public.workshops to authenticated;
 grant all on public.feedback_forms to authenticated;
 grant all on public.feedback_questions to authenticated;
@@ -183,6 +231,42 @@ $$;
 
 grant execute on function public.is_admin() to anon, authenticated;
 
+create or replace function public.submit_feedback_response(
+  p_form_id uuid,
+  p_participant_name text default null,
+  p_participant_contact text default null,
+  p_answers jsonb default '[]'::jsonb
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  response_id uuid;
+  answer_item jsonb;
+begin
+  insert into public.feedback_responses (form_id, participant_name, participant_contact)
+  values (p_form_id, nullif(p_participant_name, ''), nullif(p_participant_contact, ''))
+  returning id into response_id;
+
+  for answer_item in select * from jsonb_array_elements(coalesce(p_answers, '[]'::jsonb))
+  loop
+    insert into public.feedback_answers (response_id, question_id, answer_text, answer_value)
+    values (
+      response_id,
+      (answer_item ->> 'question_id')::uuid,
+      nullif(answer_item ->> 'answer_text', ''),
+      answer_item -> 'answer_value'
+    );
+  end loop;
+
+  return response_id;
+end;
+$$;
+
+grant execute on function public.submit_feedback_response(uuid, text, text, jsonb) to anon, authenticated;
+
 drop policy if exists "Admins can read admin profiles" on public.admin_profiles;
 drop policy if exists "Anon can read active materials" on public.materials;
 drop policy if exists "Anon can read active quizzes" on public.quizzes;
@@ -203,6 +287,9 @@ drop policy if exists "Admins can manage feedback forms" on public.feedback_form
 drop policy if exists "Admins can manage feedback questions" on public.feedback_questions;
 drop policy if exists "Admins can read quiz sessions" on public.quiz_sessions;
 drop policy if exists "Admins can read quiz results" on public.quiz_results;
+drop policy if exists "Anon can manage live quiz sessions" on public.live_quiz_sessions;
+drop policy if exists "Anon can manage live quiz players" on public.live_quiz_players;
+drop policy if exists "Anon can manage live quiz answers" on public.live_quiz_answers;
 drop policy if exists "Admins can read feedback responses" on public.feedback_responses;
 drop policy if exists "Admins can read feedback answers" on public.feedback_answers;
 
@@ -303,6 +390,27 @@ create policy "Anon can insert feedback answers"
 on public.feedback_answers
 for insert
 to anon
+with check (true);
+
+create policy "Anon can manage live quiz sessions"
+on public.live_quiz_sessions
+for all
+to anon, authenticated
+using (true)
+with check (true);
+
+create policy "Anon can manage live quiz players"
+on public.live_quiz_players
+for all
+to anon, authenticated
+using (true)
+with check (true);
+
+create policy "Anon can manage live quiz answers"
+on public.live_quiz_answers
+for all
+to anon, authenticated
+using (true)
 with check (true);
 
 create policy "Admins can manage materials"

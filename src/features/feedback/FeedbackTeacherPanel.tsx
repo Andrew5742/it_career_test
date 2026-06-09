@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "../../lib/supabaseClient";
 import type { FeedbackFormRecord, WorkshopRecord } from "../../lib/contentTypes";
 
@@ -20,13 +19,17 @@ function createFeedbackUrl(formId: string) {
   return { url: url.toString(), expires };
 }
 
-export function FeedbackTeacherPanel({ onBack }: { onBack: () => void }) {
+export function FeedbackTeacherPanel({
+  onBack,
+  onLaunchQr,
+}: {
+  onBack: () => void;
+  onLaunchQr: (url: string, expires: number) => void;
+}) {
   const [workshops, setWorkshops] = useState<WorkshopRecord[]>([]);
   const [forms, setForms] = useState<FeedbackFormRecord[]>([]);
   const [workshopId, setWorkshopId] = useState("");
   const [formId, setFormId] = useState("");
-  const [qrUrl, setQrUrl] = useState("");
-  const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [status, setStatus] = useState("");
 
   useEffect(() => {
@@ -97,28 +100,8 @@ export function FeedbackTeacherPanel({ onBack }: { onBack: () => void }) {
     }
 
     const next = createFeedbackUrl(formId);
-    setQrUrl(next.url);
-    setExpiresAt(next.expires);
+    onLaunchQr(next.url, next.expires);
     setStatus("");
-  }
-
-  if (qrUrl) {
-    return (
-      <main className="qr-fullscreen">
-        <button className="ghost-button qr-back" type="button" onClick={() => setQrUrl("")}>
-          ← Назад
-        </button>
-
-        <section className="qr-stage">
-          <div className="qr-live-badge">QR-відгук активний</div>
-          <QRCodeSVG value={qrUrl} size={360} />
-          <h1>Відгуки про воркшоп</h1>
-          <p>Посилання активне 15 хвилин. Учні відкривають форму зі своїх телефонів.</p>
-          {expiresAt && <strong>Дійсний до: {new Date(expiresAt).toLocaleTimeString()}</strong>}
-          <p className="session-link">{qrUrl}</p>
-        </section>
-      </main>
-    );
   }
 
   return (
