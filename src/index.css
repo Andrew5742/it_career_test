@@ -228,6 +228,156 @@ a {
   align-items: center;
 }
 
+.feedback-pdf-report {
+  position: fixed;
+  left: -12000px;
+  top: 0;
+  width: 1120px;
+  padding: 46px;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.feedback-pdf-hero {
+  padding: 38px;
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(14, 165, 233, 0.32), transparent 34%),
+    linear-gradient(135deg, #111827, #312e81 52%, #0f766e);
+  color: #ffffff;
+}
+
+.feedback-pdf-hero span {
+  display: inline-flex;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-weight: 950;
+}
+
+.feedback-pdf-hero h1 {
+  margin: 22px 0 10px;
+  font-size: 54px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.feedback-pdf-hero p {
+  margin: 0;
+  max-width: 760px;
+  color: #dbeafe;
+  font-size: 22px;
+  line-height: 1.45;
+}
+
+.feedback-pdf-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 22px 0;
+}
+
+.feedback-pdf-summary div {
+  padding: 22px;
+  border-radius: 24px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.feedback-pdf-summary strong {
+  display: block;
+  font-size: 32px;
+  line-height: 1.05;
+}
+
+.feedback-pdf-summary span {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  font-weight: 850;
+}
+
+.feedback-pdf-section h2 {
+  margin: 28px 0 16px;
+  font-size: 34px;
+}
+
+.feedback-pdf-question {
+  break-inside: avoid;
+  margin-top: 16px;
+  padding: 24px;
+  border-radius: 28px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+}
+
+.feedback-pdf-question h3 {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.18;
+}
+
+.feedback-pdf-question > p {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.feedback-pdf-bars {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.feedback-pdf-bar-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 54px;
+  gap: 14px;
+  align-items: center;
+}
+
+.feedback-pdf-bar-row span {
+  font-weight: 900;
+  color: #334155;
+}
+
+.feedback-pdf-bar-row div {
+  height: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.feedback-pdf-bar-row i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4f39f6, #0ea5e9);
+}
+
+.feedback-pdf-bar-row strong {
+  text-align: right;
+}
+
+.feedback-pdf-text-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.feedback-pdf-text-list p {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
 .inline-status {
   padding: 14px 16px;
   border-radius: 18px;

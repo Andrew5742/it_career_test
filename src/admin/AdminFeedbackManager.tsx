@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { supabase } from "../lib/supabaseClient";
 import type { FeedbackFormRecord, FeedbackQuestionRecord, WorkshopRecord } from "../lib/contentTypes";
 
@@ -37,7 +39,16 @@ type ResponseWithAnswers = {
   }[];
 };
 
+type QuestionReport = {
+  question: FeedbackQuestionRecord;
+  totalAnswers: number;
+  averageRating: number | null;
+  distribution: { label: string; count: number; percent: number }[];
+  textAnswers: string[];
+};
+
 export function AdminFeedbackManager() {
+  const pdfReportRef = useRef<HTMLDivElement | null>(null);
   const [workshops, setWorkshops] = useState<WorkshopRecord[]>([]);
   const [forms, setForms] = useState<FeedbackFormRecord[]>([]);
   const [questions, setQuestions] = useState<FeedbackQuestionRecord[]>([]);
@@ -101,6 +112,61 @@ export function AdminFeedbackManager() {
   }, [selectedFormId]);
 
   const selectedForm = useMemo(() => forms.find((item) => item.id === selectedFormId), [forms, selectedFormId]);
+  const selectedWorkshop = useMemo(
+    () => workshops.find((item) => item.id === selectedForm?.workshop_id),
+    [selectedForm?.workshop_id, workshops],
+  );
+  const reportData = useMemo(() => {
+    return questions.map((question): QuestionReport => {
+      const values = responses
+        .map((response) => (response.feedback_answers ?? []).find((answer) => answer.question_id === question.id)?.answer_text?.trim() ?? "")
+        .filter(Boolean);
+
+      if (question.question_type === "rating_1_5") {
+        const ratingCounts = [1, 2, 3, 4, 5].map((rating) => ({
+          label: String(rating),
+          count: values.filter((value) => Number(value) === rating).length,
+          percent: values.length > 0 ? Math.round((values.filter((value) => Number(value) === rating).length / values.length) * 100) : 0,
+        }));
+        const ratingSum = values.reduce((sum, value) => sum + Number(value || 0), 0);
+        return {
+          question,
+          totalAnswers: values.length,
+          averageRating: values.length > 0 ? ratingSum / values.length : null,
+          distribution: ratingCounts,
+          textAnswers: [],
+        };
+      }
+
+      if (question.question_type === "choice") {
+        const counts = new Map<string, number>();
+        for (const value of values) {
+          counts.set(value, (counts.get(value) ?? 0) + 1);
+        }
+        return {
+          question,
+          totalAnswers: values.length,
+          averageRating: null,
+          distribution: [...counts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([label, count]) => ({
+              label,
+              count,
+              percent: values.length > 0 ? Math.round((count / values.length) * 100) : 0,
+            })),
+          textAnswers: [],
+        };
+      }
+
+      return {
+        question,
+        totalAnswers: values.length,
+        averageRating: null,
+        distribution: [],
+        textAnswers: values,
+      };
+    });
+  }, [questions, responses]);
 
   function updateWorkshopDraft(field: keyof typeof emptyWorkshop) {
     return (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -212,11 +278,11 @@ export function AdminFeedbackManager() {
       ];
     });
 
-    const csv = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
-      .join("\n");
+    const csv = `sep=;\r\n${[headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(";"))
+      .join("\r\n")}`;
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -225,6 +291,60 @@ export function AdminFeedbackManager() {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  async function exportPdf() {
+    const node = pdfReportRef.current;
+    if (!node || !selectedForm) return;
+
+    const previousStyle = node.getAttribute("style") ?? "";
+    node.style.position = "fixed";
+    node.style.left = "0";
+    node.style.top = "0";
+    node.style.width = "1120px";
+    node.style.background = "#ffffff";
+    node.style.zIndex = "-1";
+    node.style.opacity = "1";
+    node.style.pointerEvents = "none";
+
+    try {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        width: 1120,
+        windowWidth: 1120,
+        scrollX: 0,
+        scrollY: 0,
+        useCORS: true,
+        logging: false,
+      });
+
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imageHeight = (canvas.height * pageWidth) / canvas.width;
+      let heightLeft = imageHeight;
+      let position = 0;
+      const image = canvas.toDataURL("image/png", 1);
+
+      pdf.addImage(image, "PNG", 0, position, pageWidth, imageHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imageHeight;
+        pdf.addPage();
+        pdf.addImage(image, "PNG", 0, position, pageWidth, imageHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`feedback-report-${selectedFormId || "responses"}.pdf`);
+    } finally {
+      node.setAttribute("style", previousStyle);
+    }
   }
 
   return (
@@ -324,6 +444,9 @@ export function AdminFeedbackManager() {
           <button className="secondary-button" type="button" onClick={exportCsv} disabled={!selectedFormId || responses.length === 0}>
             Експорт CSV
           </button>
+          <button className="secondary-button" type="button" onClick={exportPdf} disabled={!selectedFormId || responses.length === 0}>
+            Експорт PDF
+          </button>
         </div>
         {responses.map((response) => (
           <article key={response.id} className="admin-list-card compact">
@@ -335,6 +458,64 @@ export function AdminFeedbackManager() {
             ))}
           </article>
         ))}
+      </div>
+
+      <div ref={pdfReportRef} className="feedback-pdf-report" aria-hidden="true">
+        <header className="feedback-pdf-hero">
+          <span>Звіт за відгуками</span>
+          <h1>{selectedForm?.title ?? "Форма відгуків"}</h1>
+          <p>{selectedForm?.description || "Підсумок відповідей учасників воркшопу."}</p>
+        </header>
+
+        <section className="feedback-pdf-summary">
+          <div>
+            <strong>{responses.length}</strong>
+            <span>відповідей</span>
+          </div>
+          <div>
+            <strong>{questions.length}</strong>
+            <span>питань</span>
+          </div>
+          <div>
+            <strong>{selectedWorkshop?.title ?? "Без воркшопу"}</strong>
+            <span>воркшоп</span>
+          </div>
+        </section>
+
+        <section className="feedback-pdf-section">
+          <h2>Графіки відповідей</h2>
+          {reportData.map((item) => (
+            <article key={item.question.id} className="feedback-pdf-question">
+              <h3>{item.question.question_text}</h3>
+              <p>
+                Тип: {item.question.question_type} · Відповідей: {item.totalAnswers}
+                {item.averageRating !== null ? ` · Середня оцінка: ${item.averageRating.toFixed(1)} / 5` : ""}
+              </p>
+
+              {item.distribution.length > 0 && (
+                <div className="feedback-pdf-bars">
+                  {item.distribution.map((bar) => (
+                    <div key={bar.label} className="feedback-pdf-bar-row">
+                      <span>{bar.label}</span>
+                      <div>
+                        <i style={{ width: `${Math.max(4, bar.percent)}%` }} />
+                      </div>
+                      <strong>{bar.count}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {item.textAnswers.length > 0 && (
+                <div className="feedback-pdf-text-list">
+                  {item.textAnswers.slice(0, 8).map((answer, index) => (
+                    <p key={`${item.question.id}-${index}`}>{answer}</p>
+                  ))}
+                </div>
+              )}
+            </article>
+          ))}
+        </section>
       </div>
     </div>
   );
