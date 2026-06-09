@@ -559,6 +559,7 @@ export default function App() {
   const [quizSessionUrl, setQuizSessionUrl] = useState("");
   const [quizExpiresAt, setQuizExpiresAt] = useState<number | null>(null);
   const [liveQuizSessionId, setLiveQuizSessionId] = useState("");
+  const [teacherQuizSoundOn, setTeacherQuizSoundOn] = useState(false);
   const [adminTab, setAdminTab] = useState<"home" | "test" | "proforientation" | "feedback" | "quiz">("home");
 
   const [screen, setScreen] = useState<"test" | "result">("test");
@@ -802,6 +803,8 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
           sessionId={liveQuizSessionId}
           qrUrl={quizSessionUrl}
           expiresAt={quizExpiresAt}
+          soundOn={teacherQuizSoundOn}
+          setSoundOn={setTeacherQuizSoundOn}
           onBack={() => {
             setQuizSessionUrl("");
             setLiveQuizSessionId("");
@@ -913,7 +916,14 @@ https://kiis.khmnu.edu.ua/abiturientu/`;
 
           {adminTab === "feedback" && <FeedbackTeacherPanel onBack={() => setAdminTab("home")} onLaunchQr={showFeedbackQr} />}
 
-          {adminTab === "quiz" && <ItQuizTeacherPanel onBack={() => setAdminTab("home")} onLaunchQr={showQuizQr} />}
+          {adminTab === "quiz" && (
+            <ItQuizTeacherPanel
+              onBack={() => setAdminTab("home")}
+              onLaunchQr={showQuizQr}
+              soundOn={teacherQuizSoundOn}
+              setSoundOn={setTeacherQuizSoundOn}
+            />
+          )}
         </section>
       </main>
     );

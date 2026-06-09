@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ProfessionVisual } from "../../components/ProfessionVisual";
 import { fallbackItProfessionsQuiz } from "../../data/fallbackItProfessionsQuiz";
 import { supabase } from "../../lib/supabaseClient";
@@ -10,10 +10,6 @@ type PlayQuestion = QuizQuestion & {
 };
 
 type QuizStep = "start" | "question" | "result";
-type SoundPreference = "on" | "off";
-
-const soundStorageKey = "itQuizSound";
-const audioPath = "/it_career_test/audio/it-quiz-theme.mp3";
 
 function seededRandom(seed: string) {
   let value = 2166136261;
@@ -96,7 +92,6 @@ export function ItQuizPage() {
     return <LiveQuizPlayerPage />;
   }
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [quiz, setQuiz] = useState<Quiz>(fallbackItProfessionsQuiz);
   const [questions, setQuestions] = useState<PlayQuestion[]>([]);
   const [step, setStep] = useState<QuizStep>("start");
@@ -107,9 +102,6 @@ export function ItQuizPage() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [savedResult, setSavedResult] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [soundPreference, setSoundPreference] = useState<SoundPreference>(() =>
-    localStorage.getItem(soundStorageKey) === "on" ? "on" : "off",
-  );
   const [feedbackUrl, setFeedbackUrl] = useState("");
 
   useEffect(() => {
@@ -197,17 +189,6 @@ export function ItQuizPage() {
     };
   }, [isExpired, quizSlug, requestedCount, sessionId]);
 
-  useEffect(() => {
-    localStorage.setItem(soundStorageKey, soundPreference);
-    if (!audioRef.current) return;
-    audioRef.current.volume = 0.25;
-    if (soundPreference === "on" && step !== "start") {
-      audioRef.current.play().catch(() => undefined);
-    } else {
-      audioRef.current.pause();
-    }
-  }, [soundPreference, step]);
-
   const currentQuestion = questions[currentIndex];
   const score = correctAnswers.length;
   const topTags = topTagsFromAnswers(correctAnswers);
@@ -215,21 +196,6 @@ export function ItQuizPage() {
 
   function startQuiz() {
     setStep("question");
-    if (soundPreference === "on") {
-      audioRef.current?.play().catch(() => undefined);
-    }
-  }
-
-  function toggleSound() {
-    setSoundPreference((current) => {
-      const next = current === "on" ? "off" : "on";
-      if (next === "on") {
-        audioRef.current?.play().catch(() => undefined);
-      } else {
-        audioRef.current?.pause();
-      }
-      return next;
-    });
   }
 
   function selectAnswer(answer: QuizAnswer, eventTarget: EventTarget & HTMLElement) {
@@ -303,8 +269,6 @@ export function ItQuizPage() {
 
   return (
     <main className="it-quiz-page">
-      <audio ref={audioRef} src={audioPath} loop preload="none" />
-
       {step === "start" && (
         <section className="it-quiz-card">
           <ProfessionVisual visualType="general" />
@@ -314,9 +278,6 @@ export function ItQuizPage() {
             <button className="primary-button" type="button" onClick={startQuiz}>
               Почати
             </button>
-            <button className="secondary-button" type="button" onClick={toggleSound}>
-              Звук {soundPreference === "on" ? "увімкнено" : "вимкнено"}
-            </button>
           </div>
         </section>
       )}
@@ -325,9 +286,6 @@ export function ItQuizPage() {
         <section className="it-quiz-card">
           <div className="top-row">
             <span>Питання {currentIndex + 1} з {questions.length}</span>
-            <button className="sound-toggle" type="button" onClick={toggleSound}>
-              Звук {soundPreference === "on" ? "увімкнено" : "вимкнено"}
-            </button>
           </div>
           <div className="progress">
             <div style={{ width: `${Math.round(((currentIndex + 1) / questions.length) * 100)}%` }} />

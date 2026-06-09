@@ -42,7 +42,7 @@ type LeaderboardEntry = {
   place: number;
 };
 
-const audioPath = "/it_career_test/audio/it-quiz-theme.mp3";
+const audioPath = "/it_career_test/audio/before-the-clock-stops.mp3";
 const questionPreviewMs = 3000;
 const answerWindowMs = 10000;
 
@@ -98,11 +98,15 @@ export function ItQuizHostScreen({
   sessionId,
   qrUrl,
   expiresAt,
+  soundOn,
+  setSoundOn,
   onBack,
 }: {
   sessionId: string;
   qrUrl: string;
   expiresAt: number | null;
+  soundOn: boolean;
+  setSoundOn: (value: boolean | ((current: boolean) => boolean)) => void;
   onBack: () => void;
 }) {
   const [session, setSession] = useState<LiveSession | null>(null);
@@ -110,7 +114,6 @@ export function ItQuizHostScreen({
   const [answers, setAnswers] = useState<LiveAnswer[]>([]);
   const [questions, setQuestions] = useState<PlayQuestion[]>([]);
   const [status, setStatus] = useState("");
-  const [soundOn, setSoundOn] = useState(false);
   const [now, setNow] = useState(Date.now());
   const transitionRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);

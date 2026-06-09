@@ -3,7 +3,7 @@ import { fallbackItProfessionsQuiz } from "../../data/fallbackItProfessionsQuiz"
 import { supabase } from "../../lib/supabaseClient";
 import type { Quiz } from "../../lib/contentTypes";
 
-const audioPath = "/it_career_test/audio/it-quiz-theme.mp3";
+const audioPath = "/it_career_test/audio/before-the-clock-stops.mp3";
 
 function createQuizUrl(slug: string, count: number, sessionId: string) {
   const expires = Date.now() + 15 * 60 * 1000;
@@ -21,15 +21,18 @@ function createQuizUrl(slug: string, count: number, sessionId: string) {
 export function ItQuizTeacherPanel({
   onBack,
   onLaunchQr,
+  soundOn,
+  setSoundOn,
 }: {
   onBack: () => void;
   onLaunchQr: (url: string, expires: number) => void;
+  soundOn: boolean;
+  setSoundOn: (value: boolean | ((current: boolean) => boolean)) => void;
 }) {
   const [quizzes, setQuizzes] = useState<Quiz[]>([fallbackItProfessionsQuiz]);
   const [quizSlug, setQuizSlug] = useState(fallbackItProfessionsQuiz.slug);
   const [count, setCount] = useState(fallbackItProfessionsQuiz.default_question_count);
   const [status, setStatus] = useState("");
-  const [soundOn, setSoundOn] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
